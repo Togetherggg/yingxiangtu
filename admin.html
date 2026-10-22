@@ -395,7 +395,7 @@
     setSaveStatus('正在发布到 GitHub…', 'warn');
     setStatus('正在保存…', 'warn');
     try {
-      const json = JSON.stringify(lib);
+      const json = JSON.stringify(lib).replace(/<\//g, '<\\/');
       const newHtml = html.replace(/(window\.__PUBLIC_LIBRARY__=)([\s\S]*?)(;<\/script>)/, function (m, a, b, c) { return a + json + c; });
       if (newHtml === html) throw new Error('页面数据替换失败，请刷新后重试');
       const res = await api('PUT', '/contents/' + FILE, {
