@@ -1344,6 +1344,19 @@
     });
   }
 
+  const PERMANENT_URL = 'https://togetherggg.github.io/yingxiangtu/';
+
+  function openPermanentSite() {
+    if (isTouchDevice()) { window.location.href = PERMANENT_URL; return; }
+    const a = document.createElement('a');
+    a.href = PERMANENT_URL;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
   /* ---------------------------------------------------------------- 公网分享 */
   async function openPublicShare() {
     if (state.readOnly) { openPhoneModal(); return; }
@@ -1703,6 +1716,7 @@
             ? '当前为共享存储模式，数据文件位于 C:\\效果图网址\\data\\library.json，Edge、Chrome、百度等浏览器打开的是同一份数据。'
             : '当前为本地模式，数据保存在当前浏览器的 localStorage 中；双击桌面「效果图网址」快捷方式可获得共享存储与自动预览。') +
         (state.readOnly ? '' : '<br>手机 / 微信：手机与电脑连同一个 Wi-Fi 后，点右上角手机图标扫码，即可在微信里打开同一个效果图库。') +
+        (state.readOnly ? '' : '<br>永久公网站：<a href="' + PERMANENT_URL + '" target="_blank" rel="noopener" style="color:var(--accent-2)">' + PERMANENT_URL + '</a><br>本地修改后，双击桌面「发布更新到公网」即可更新永久站（约 1 分钟）。') +
         '</p></div></div>';
     const modal = openModal({
       title: '使用说明与快捷键',
@@ -1856,7 +1870,8 @@
         { icon: 'upload', label: '导入备份', onClick: () => $('#importFile').click() },
         { icon: 'shield', label: '数据体检', onClick: openHealth },
         { icon: 'phone', label: '手机 / 微信访问', onClick: openPhoneModal },
-        { icon: 'globe', label: '公网分享（任何人可看）', onClick: openPublicShare },
+        { icon: 'globe', label: '公网分享（临时链接）', onClick: openPublicShare },
+        { icon: 'external', label: '打开永久公网站', onClick: openPermanentSite },
         { icon: 'folder', label: '打开数据文件夹', onClick: openDataFolder },
         '-',
         { icon: 'refresh', label: '恢复内置数据', danger: true, onClick: resetSeed }
