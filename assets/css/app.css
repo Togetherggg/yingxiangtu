@@ -1086,3 +1086,26 @@ body { -webkit-tap-highlight-color: transparent; }
   .db-card { padding: 13px; }
   .db-w-emoji { font-size: 27px; }
 }
+/* ---------------------------------------------------------------- 设置 / 教程 */
+.settings-doc { font-size: 13px; color: var(--text-2); line-height: 1.85; }
+.settings-doc h4 { display: flex; align-items: center; gap: 7px; margin: 20px 0 8px; font-size: 14px; color: var(--text); font-weight: 700; }
+.settings-doc h4:first-child { margin-top: 2px; }
+.settings-doc h4::before { content: ''; width: 4px; height: 14px; border-radius: 2px; background: var(--grad); flex: 0 0 auto; }
+.settings-doc p { margin: 0 0 10px; }
+.settings-doc ol, .settings-doc ul { margin: 0 0 12px; padding-left: 21px; }
+.settings-doc li { margin-bottom: 6px; }
+.settings-doc strong { color: var(--text); font-weight: 600; }
+.settings-doc a { color: var(--accent-2); text-decoration: none; word-break: break-all; }
+.settings-doc a:hover { text-decoration: underline; }
+.settings-doc code { font-family: var(--mono, ui-monospace, SFMono-Regular, Consolas, monospace); font-size: 11.5px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; color: var(--text); }
+.settings-tip { display: flex; gap: 8px; align-items: flex-start; padding: 9px 11px; margin: 10px 0 14px; border: 1px solid rgba(251,191,36,.22); border-radius: 10px; background: rgba(251,191,36,.06); font-size: 11.5px; line-height: 1.75; color: var(--text-2); }
+.settings-tip .ico { flex: 0 0 auto; width: 15px; height: 15px; color: var(--warn); margin-top: 1px; }
+.settings-tip.is-info { border-color: rgba(34,211,238,.22); background: rgba(34,211,238,.055); }
+.settings-tip.is-info .ico { color: var(--accent-2); }
+.settings-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 4px; }
+.settings-mini { border: 1px solid var(--line); border-radius: 11px; background: var(--panel); padding: 10px 12px; font-size: 12px; line-height: 1.75; }
+.settings-mini b { display: block; color: var(--text); font-size: 12.5px; margin-bottom: 3px; }
+.settings-mini span { color: var(--text-3); }
+.settings-version { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--text-3); line-height: 1.8; }
+.settings-kbd { display: inline-block; min-width: 18px; text-align: center; padding: 0 5px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; background: var(--panel-2); font-size: 10.5px; color: var(--text-2); }
+@media (max-width: 640px) { .settings-split { grid-template-columns: 1fr; } .settings-doc { font-size: 12.5px; } }
