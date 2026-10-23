@@ -578,6 +578,140 @@
     try { localStorage.setItem('yxg.board.prefs', JSON.stringify(boardPrefs)); } catch (e) {}
   }
 
+  const WALLPAPER_KEY = 'yxg.wallpaper.prefs';
+  const WALLPAPER_THEMES = [
+    { id: 'all', label: '全部' },
+    { id: 'interior', label: '室内' },
+    { id: 'exterior', label: '室外' },
+    { id: 'garden', label: '园艺' }
+  ];
+  const WALLPAPER_DURATIONS = [
+    { value: 60, label: '1 分钟' },
+    { value: 300, label: '5 分钟' },
+    { value: 900, label: '15 分钟' },
+    { value: 1800, label: '30 分钟' },
+    { value: 3600, label: '1 小时' },
+    { value: 43200, label: '12 小时' },
+    { value: 86400, label: '24 小时' },
+    { value: 0, label: '永久' }
+  ];
+  const WALLPAPERS = [
+    { id: 'w1', theme: 'interior', title: '暖木客厅', src: 'assets/wallpapers/w1.jpg', thumb: 'assets/wallpapers/w1-thumb.jpg' },
+    { id: 'w2', theme: 'interior', title: '静谧起居', src: 'assets/wallpapers/w2.jpg', thumb: 'assets/wallpapers/w2-thumb.jpg' },
+    { id: 'w3', theme: 'interior', title: '光影餐厅', src: 'assets/wallpapers/w3.jpg', thumb: 'assets/wallpapers/w3-thumb.jpg' },
+    { id: 'w4', theme: 'exterior', title: '极简住宅', src: 'assets/wallpapers/w4.jpg', thumb: 'assets/wallpapers/w4-thumb.jpg' },
+    { id: 'w5', theme: 'exterior', title: '暮色别墅', src: 'assets/wallpapers/w5.jpg', thumb: 'assets/wallpapers/w5-thumb.jpg' },
+    { id: 'w6', theme: 'exterior', title: '庭院建筑', src: 'assets/wallpapers/w6.jpg', thumb: 'assets/wallpapers/w6-thumb.jpg' },
+    { id: 'w7', theme: 'garden', title: '绿意花园', src: 'assets/wallpapers/w7.jpg', thumb: 'assets/wallpapers/w7-thumb.jpg' },
+    { id: 'w8', theme: 'garden', title: '林间小径', src: 'assets/wallpapers/w8.jpg', thumb: 'assets/wallpapers/w8-thumb.jpg' },
+    { id: 'w9', theme: 'garden', title: '自然庭院', src: 'assets/wallpapers/w9.jpg', thumb: 'assets/wallpapers/w9-thumb.jpg' }
+  ];
+  let wallpaperPrefs = null;
+  let wallpaperTimer = null;
+  let wallpaperList = [];
+  let wallpaperIndex = 0;
+  let wallpaperVisible = 'A';
+
+  function wallpaperThemeLabel(theme) {
+    const item = WALLPAPER_THEMES.filter((t) => t.id === theme)[0];
+    return item ? item.label : '全部';
+  }
+
+  function loadWallpaperPrefs() {
+    const def = { enabled: true, theme: 'all', selected: 'w1', rotate: true, duration: 900 };
+    let parsed = null;
+    try { const raw = localStorage.getItem(WALLPAPER_KEY); if (raw) parsed = JSON.parse(raw); } catch (e) {}
+    wallpaperPrefs = Object.assign(def, parsed || {});
+    if (!WALLPAPERS.some((w) => w.id === wallpaperPrefs.selected)) wallpaperPrefs.selected = 'w1';
+    if (!WALLPAPER_THEMES.some((t) => t.id === wallpaperPrefs.theme)) wallpaperPrefs.theme = 'all';
+    const dur = Number(wallpaperPrefs.duration);
+    wallpaperPrefs.duration = WALLPAPER_DURATIONS.some((d) => d.value === dur) ? dur : 900;
+    wallpaperPrefs.enabled = wallpaperPrefs.enabled !== false;
+    wallpaperPrefs.rotate = wallpaperPrefs.rotate !== false;
+    return wallpaperPrefs;
+  }
+
+  function saveWallpaperPrefs() {
+    try { localStorage.setItem(WALLPAPER_KEY, JSON.stringify(wallpaperPrefs)); } catch (e) {}
+  }
+
+  function wallpapersFor(theme) {
+    return theme === 'all' ? WALLPAPERS.slice() : WALLPAPERS.filter((w) => w.theme === theme);
+  }
+
+  function showWallpaper(src) {
+    const a = $('#wallpaperA');
+    const b = $('#wallpaperB');
+    if (!a || !b) return;
+    let done = false;
+    function swap() {
+      if (done) return;
+      done = true;
+      const next = wallpaperVisible === 'A' ? b : a;
+      const prev = wallpaperVisible === 'A' ? a : b;
+      next.style.backgroundImage = 'url("' + src + '")';
+      void next.offsetWidth;
+      next.classList.add('is-visible');
+      prev.classList.remove('is-visible');
+      wallpaperVisible = wallpaperVisible === 'A' ? 'B' : 'A';
+    }
+    const img = new Image();
+    img.onload = swap;
+    img.onerror = swap;
+    img.src = src;
+    if (img.complete) swap();
+  }
+
+  function scheduleWallpaper() {
+    clearTimeout(wallpaperTimer);
+    const seconds = Number(wallpaperPrefs.duration) || 0;
+    if (!seconds) return;
+    if (wallpaperPrefs.rotate && wallpaperList.length > 1) {
+      wallpaperTimer = setTimeout(() => {
+        wallpaperIndex = (wallpaperIndex + 1) % wallpaperList.length;
+        wallpaperPrefs.selected = wallpaperList[wallpaperIndex].id;
+        saveWallpaperPrefs();
+        showWallpaper(wallpaperList[wallpaperIndex].src);
+        scheduleWallpaper();
+      }, seconds * 1000);
+    } else {
+      wallpaperTimer = setTimeout(() => {
+        wallpaperPrefs.enabled = false;
+        saveWallpaperPrefs();
+        const layer = $('#wallpaperLayer');
+        if (layer) layer.classList.remove('is-on');
+        if (typeof toast === 'function') toast('壁纸播放结束，已自动关闭');
+      }, seconds * 1000);
+    }
+  }
+
+  function applyWallpaper() {
+    clearTimeout(wallpaperTimer);
+    const layer = $('#wallpaperLayer');
+    if (!layer) return;
+    if (!wallpaperPrefs || !wallpaperPrefs.enabled) {
+      layer.classList.remove('is-on');
+      return;
+    }
+    wallpaperList = wallpapersFor(wallpaperPrefs.theme);
+    if (!wallpaperList.length) wallpaperList = WALLPAPERS.slice();
+    let idx = wallpaperList.findIndex((w) => w.id === wallpaperPrefs.selected);
+    if (idx < 0) {
+      idx = 0;
+      wallpaperPrefs.selected = wallpaperList[0].id;
+      saveWallpaperPrefs();
+    }
+    wallpaperIndex = idx;
+    layer.classList.add('is-on');
+    showWallpaper(wallpaperList[idx].src);
+    scheduleWallpaper();
+  }
+
+  function initWallpaper() {
+    loadWallpaperPrefs();
+    applyWallpaper();
+  }
+
   function pad2(n) { return String(n).padStart(2, '0'); }
   function localDateStr(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function scheduleDateLabel(date) {
@@ -2290,6 +2424,38 @@
   function settingsContent(key) {
     const A = TUTORIAL_URLS.admin;
     const P = TUTORIAL_URLS.public;
+    if (key === 'wallpaper') {
+      const w = wallpaperPrefs || loadWallpaperPrefs();
+      const themeChips = WALLPAPER_THEMES.map((t) => '<button type="button" data-wallpaper-theme="' + t.id + '" class="' + (w.theme === t.id ? 'is-active' : '') + '">' + t.label + '</button>').join('');
+      const cards = WALLPAPERS.map((x) => '<button type="button" class="wallpaper-card' + (w.selected === x.id ? ' is-selected' : '') + '" data-wallpaper-pick="' + x.id + '" aria-pressed="' + (w.selected === x.id ? 'true' : 'false') + '">' +
+        '<img src="' + x.thumb + '" alt="' + esc(x.title) + '" loading="lazy">' +
+        '<span><b>' + esc(x.title) + '</b><em>' + wallpaperThemeLabel(x.theme) + '</em></span>' +
+        '<i class="wallpaper-pick-check">✓</i></button>').join('');
+      const durOpts = WALLPAPER_DURATIONS.map((d) => '<option value="' + d.value + '"' + (w.duration === d.value ? ' selected' : '') + '>' + d.label + '</option>').join('');
+      return '<h4>艺术建筑壁纸</h4>' +
+        '<p>室内、室外、园艺三类建筑与庭院主题壁纸。可以整体开关，也可以只选一张固定显示；轮播时按设定的时长自动切换。</p>' +
+        '<label class="wallpaper-master"><input id="wallpaperEnabled" type="checkbox"' + (w.enabled ? ' checked' : '') + '><b>显示壁纸</b><span>关闭后恢复纯色 + 光晕背景</span></label>' +
+        '<h4>选择单张壁纸</h4>' +
+        '<p class="wallpaper-hint">点任意一张即选为单张，并自动关闭轮播。</p>' +
+        '<div class="wallpaper-grid">' + cards + '</div>' +
+        '<h4>轮播与播放时长</h4>' +
+        '<div class="wallpaper-theme-row"><span>轮播主题</span><div class="wallpaper-theme-tabs">' + themeChips + '</div></div>' +
+        '<div class="wallpaper-controls">' +
+        '<label class="wallpaper-field">每张播放时长<select id="wallpaperDuration">' + durOpts + '</select></label>' +
+        '<label class="wallpaper-rotate"><input id="wallpaperRotate" type="checkbox"' + (w.rotate ? ' checked' : '') + '> 轮播全部</label>' +
+        '</div>' +
+        '<div class="settings-tip is-info">' + ico('info') + '<span>单张 + 有限时长：到时间后壁纸自动关闭；永久：一直显示。轮播时每张按这个时长切换，永久 = 停在当前这张。这里的设置只影响当前浏览器。</span></div>' +
+        '<p class="wallpaper-credit">图片来自 <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a>，遵循 Unsplash License，仅作界面壁纸使用。</p>' +
+        '<h4>壁纸设置教程</h4>' +
+        '<ol>' +
+        '<li>公网页右上角齿轮「设置」→「壁纸」。</li>' +
+        '<li>「显示壁纸」总开关：关闭后回到原来的深色/浅色背景。</li>' +
+        '<li>点任意一张壁纸 = 只显示这一张，轮播自动取消；再选「每张播放时长」。</li>' +
+        '<li>单张 + 有限时长：到 1 分钟 / 5 分钟 / 15 分钟 / 30 分钟 / 1 小时 / 12 小时 / 24 小时后壁纸自动关闭；选「永久」则一直显示。</li>' +
+        '<li>想自动换图：勾选「轮播全部」，选轮播主题（全部 / 室内 / 室外 / 园艺）；每张按时长切换，选「永久」则停在当前这张。</li>' +
+        '<li>设置只保存在当前浏览器；换设备或清理浏览器数据后会恢复默认。</li>' +
+        '</ol>';
+    }
     if (key === 'board') {
       const cfg = boardConfig();
       const chk = (k) => cfg[k] !== false ? ' checked' : '';
@@ -2336,6 +2502,8 @@
         '</ul>' +
         '<h4>工作台显示设置</h4>' +
         '<p>打开右上角齿轮「设置」→「工作台」，可以单独显示/隐藏设计师日程、天气、日历、风水参考，也可以关闭整个工作台。这个开关只影响当前浏览器；要让所有访客一起变，请到管理页 →「首页工作台」保存。隐藏后仍可从右上角日历图标打开「生活参考」。</p>' +
+        '<h4>艺术建筑壁纸</h4>' +
+        '<p>设置 →「壁纸」里有室内 / 室外 / 园艺三类建筑壁纸。可以整体开关、点选单张、设置每张 1 分钟到永久的播放时长，也可以轮播全部。壁纸设置只影响当前浏览器。</p>' +
         '<h4>「待分类」是什么</h4>' +
         '<p>管理页删除某个风格时，<strong>不会删除里面的效果图</strong>，链接会集中到「待分类」。公网页的「待分类」也可以正常浏览；把链接归回某个风格的操作在管理页完成。</p>' +
         '<div class="settings-tip is-info">' + ico('info') + '<span>公网页对访客是只读的：可以看、搜索、分享，但不能修改任何内容。</span></div>' +
@@ -2448,12 +2616,13 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261032 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261033 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
     const body = '<div class="life-tabs" id="settingsTabs">' +
       '<button type="button" data-settings="board" class="is-active">工作台</button>' +
+      '<button type="button" data-settings="wallpaper">壁纸</button>' +
       '<button type="button" data-settings="guide">使用教程</button>' +
       '<button type="button" data-settings="admin">管理教程</button>' +
       '<button type="button" data-settings="faq">常见问题</button>' +
@@ -2475,9 +2644,58 @@
       if (sc) sc.scrollTop = 0;
       bindSettingsActions(box);
       bindBoardPrefsSettings(box);
+      bindWallpaperSettings(box);
     }
     tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.settings)));
     show('board');
+  }
+
+  function bindWallpaperSettings(box) {
+    const enabled = $('#wallpaperEnabled', box);
+    if (!enabled) return;
+    const syncTheme = () => $$('[data-wallpaper-theme]', box).forEach((b) => {
+      b.classList.toggle('is-active', b.dataset.wallpaperTheme === wallpaperPrefs.theme);
+    });
+    const syncPick = () => $$('[data-wallpaper-pick]', box).forEach((b) => {
+      const on = b.dataset.wallpaperPick === wallpaperPrefs.selected;
+      b.classList.toggle('is-selected', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    enabled.addEventListener('change', () => {
+      wallpaperPrefs.enabled = enabled.checked;
+      saveWallpaperPrefs();
+      applyWallpaper();
+    });
+    $$('[data-wallpaper-theme]', box).forEach((b) => b.addEventListener('click', () => {
+      wallpaperPrefs.theme = b.dataset.wallpaperTheme;
+      saveWallpaperPrefs();
+      syncTheme();
+      applyWallpaper();
+    }));
+    $$('[data-wallpaper-pick]', box).forEach((b) => b.addEventListener('click', () => {
+      wallpaperPrefs.selected = b.dataset.wallpaperPick;
+      wallpaperPrefs.rotate = false;
+      wallpaperPrefs.enabled = true;
+      enabled.checked = true;
+      const rot = $('#wallpaperRotate', box);
+      if (rot) rot.checked = false;
+      saveWallpaperPrefs();
+      syncPick();
+      applyWallpaper();
+    }));
+    const rot = $('#wallpaperRotate', box);
+    if (rot) rot.addEventListener('change', () => {
+      wallpaperPrefs.rotate = rot.checked;
+      saveWallpaperPrefs();
+      applyWallpaper();
+    });
+    const dur = $('#wallpaperDuration', box);
+    if (dur) dur.addEventListener('change', () => {
+      const v = Number(dur.value);
+      wallpaperPrefs.duration = WALLPAPER_DURATIONS.some((d) => d.value === v) ? v : 900;
+      saveWallpaperPrefs();
+      applyWallpaper();
+    });
   }
 
   function bindBoardPrefsSettings(box) {
@@ -2724,6 +2942,7 @@
     }
 
     bindEvents();
+    initWallpaper();
     renderContent(false);
 
     let lib = null;
