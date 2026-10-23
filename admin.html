@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('yxg.admin.theme')||'dark';}catch(e){}</script>
 <meta name="robots" content="noindex,nofollow">
 <title>效果图网址 · 管理后台</title>
 <link rel="icon" href="assets/favicon.ico">
@@ -145,6 +146,14 @@
     padding: 10px 20px 16px; border-top: 1px solid var(--line);
   }
   .adm-tutorial-body .settings-sticker { width: 140px; height: 140px; }
+  [data-theme="light"] .adm-top { background: rgba(255, 255, 255, .88); }
+  [data-theme="light"] .adm-savebar { background: rgba(255, 255, 255, .94); }
+  [data-theme="light"] .adm-mask { background: rgba(24, 30, 44, .32); }
+  [data-theme="light"] .adm-dialog { box-shadow: 0 30px 80px -22px rgba(24, 34, 56, .38); }
+  [data-theme="light"] .adm-mark { box-shadow: 0 10px 22px -12px rgba(109, 76, 255, .45); }
+  [data-theme="light"] .adm-tutorial-close { background: var(--panel); }
+  [data-theme="light"] .adm-ev-type { background: var(--panel-2); }
+  [data-theme="light"] .settings-tip { background: rgba(251, 191, 36, .08); }
   .adm-ev-date { flex: 0 0 76px; font-size: 11px; color: var(--text-3); line-height: 1.35; }
   .adm-ev-date b { display: block; color: var(--text-2); font-size: 12px; font-weight: 600; }
   .adm-ev-body { flex: 1 1 auto; min-width: 0; }
@@ -174,6 +183,7 @@
     <div><b>效果图网址 · 管理</b><em>添加 / 删除 / 新建风格</em></div>
   </div>
   <div class="adm-actions">
+    <button class="btn btn-sm" id="adminThemeBtn" type="button" title="切换明暗">◐ 明暗</button>
     <button class="btn btn-sm" id="tutorialBtn" type="button">使用教程</button>
     <a class="btn btn-sm" href="./" target="_blank" rel="noopener">打开公网页</a>
     <button class="btn btn-sm" id="refreshBtn" hidden>刷新数据</button>
@@ -1038,6 +1048,26 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#tutorialMask').hidden) closeTutorial(); });
   }
 
+  function applyAdminTheme(theme) {
+    const t = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('yxg.admin.theme', t); } catch (e) {}
+    const btn = $('#adminThemeBtn');
+    if (btn) {
+      btn.textContent = t === 'light' ? '☀ 浅色' : '☾ 深色';
+      btn.title = t === 'light' ? '当前浅色，点击切换到深色' : '当前深色，点击切换到浅色';
+    }
+  }
+
+  function bindAdminTheme() {
+    const btn = $('#adminThemeBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      applyAdminTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    });
+    applyAdminTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+  }
+
   function bind() {
     $('#loginBtn').addEventListener('click', () => {
       const v = $('#tokenInput').value.trim();
@@ -1125,6 +1155,7 @@
   function boot() {
     bind();
     bindTutorial();
+    bindAdminTheme();
     initColors();
     showLogin('');
     const hash = location.hash.replace(/^#/, '');
