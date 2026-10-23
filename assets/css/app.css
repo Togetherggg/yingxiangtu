@@ -1007,3 +1007,82 @@ body { -webkit-tap-highlight-color: transparent; }
   .cal-cell { min-height: 36px; }
   .life-tabs button { font-size: 12px; }
 }
+/* ---------------------------------------------------------------- 设计师工作台 */
+.designer-board { display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; gap: 12px; margin: 0 0 18px; }
+.db-card {
+  min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 14px 15px; box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.db-schedule { background: linear-gradient(135deg, rgba(139,92,246,.10), rgba(34,211,238,.045) 55%, var(--card) 100%); }
+.db-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.db-kicker { display: block; font-size: 9px; letter-spacing: .16em; color: var(--text-3); font-weight: 700; margin-bottom: 3px; }
+.db-head h3 { font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; }
+.db-link { border: 0; background: none; color: var(--accent-2); font-size: 11px; padding: 3px 0; white-space: nowrap; cursor: pointer; }
+.db-link:hover { color: var(--text); }
+.db-date { font-size: 11px; color: var(--text-3); margin-bottom: 8px; }
+.db-events { display: flex; flex-direction: column; gap: 5px; }
+.db-event { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--line); min-width: 0; }
+.db-event:first-child { border-top: 0; }
+.db-ev-time { flex: 0 0 40px; font-size: 11px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.db-ev-main { flex: 1 1 auto; min-width: 0; }
+.db-ev-main b { display: block; font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.db-ev-main small { display: block; font-size: 10.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.db-ev-type { flex: 0 0 auto; font-size: 10px; padding: 2px 7px; border-radius: 6px; border: 1px solid transparent; }
+.db-empty { padding: 18px 0 14px; text-align: center; font-size: 12px; color: var(--text-3); line-height: 1.7; }
+.db-empty span { font-size: 10.5px; color: var(--text-3); opacity: .8; }
+.db-loading { padding: 26px 0; text-align: center; color: var(--text-3); font-size: 11.5px; }
+
+.db-w-now { display: flex; align-items: center; gap: 9px; padding: 4px 0 10px; border-bottom: 1px dashed var(--line); }
+.db-w-emoji { font-size: 31px; line-height: 1; }
+.db-w-main { flex: 1 1 auto; min-width: 0; }
+.db-w-main b { display: block; font-size: 23px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.db-w-main span { display: block; font-size: 10.5px; color: var(--text-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.db-w-range { font-size: 10.5px; color: var(--text-3); white-space: nowrap; }
+.db-w-days { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding-top: 9px; }
+.db-w-day { text-align: center; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); padding: 6px 2px; min-width: 0; }
+.db-w-day span { display: block; font-size: 9.5px; color: var(--text-3); }
+.db-w-day b { display: block; font-size: 16px; line-height: 1.3; }
+.db-w-day small { display: block; font-size: 9.5px; color: var(--text-2); white-space: nowrap; }
+
+.db-cal .cal-top { margin-bottom: 7px; }
+.bcal-top b { font-size: 12.5px !important; }
+.bcal-top .cal-nav button { width: 24px; height: 24px; border-radius: 7px; font-size: 14px; }
+.bcal-grid { gap: 4px !important; }
+.bcal-cell { min-height: 29px !important; border-radius: 7px !important; font-size: 10.5px !important; }
+.bcal-cell.has-event::after { width: 4px; height: 4px; bottom: 3px; }
+.db-cal .cal-week { gap: 4px; margin-bottom: 4px; }
+.db-cal .cal-week span { font-size: 9.5px; }
+
+.cal-cell { cursor: pointer; }
+.cal-cell.has-event::after {
+  content: ''; position: absolute; left: 50%; bottom: 5px; width: 5px; height: 5px;
+  margin-left: -2.5px; border-radius: 50%; background: var(--accent-2);
+}
+.cal-cell.is-today.has-event::after { background: #fff; }
+.cal-cell:hover { border-color: var(--line-2); }
+
+.db-fs-tip { font-size: 12.5px; line-height: 1.8; color: var(--text-2); margin: 2px 0 9px; }
+.db-fs-note { font-size: 10px; color: var(--text-3); line-height: 1.6; border-top: 1px dashed var(--line); padding-top: 7px; }
+
+.schedule-list { display: flex; flex-direction: column; gap: 7px; }
+.schedule-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 9px 11px; }
+.schedule-item.is-done { opacity: .55; }
+.schedule-item.is-done .schedule-main b { text-decoration: line-through; color: var(--text-3); }
+.schedule-when { flex: 0 0 74px; }
+.schedule-when b { display: block; font-size: 13px; font-variant-numeric: tabular-nums; }
+.schedule-when span { display: block; font-size: 10px; color: var(--text-3); margin-top: 2px; }
+.schedule-main { flex: 1 1 auto; min-width: 0; }
+.schedule-main b { display: block; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-main span { display: block; font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.schedule-type { flex: 0 0 auto; font-size: 10px; padding: 2px 7px; border-radius: 6px; border: 1px solid transparent; }
+
+@media (max-width: 1180px) {
+  .designer-board { grid-template-columns: 1fr 1fr; }
+  .db-schedule { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .designer-board { grid-template-columns: 1fr; }
+  .db-schedule { grid-column: auto; }
+  .db-card { padding: 13px; }
+  .db-w-emoji { font-size: 27px; }
+}
