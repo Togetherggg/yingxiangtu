@@ -363,6 +363,24 @@
   }
 
   async function loadData() {
+    // GitHub Pages 静态版：页面壳固定，数据从 data/library.json 读取
+    if (window.__STATIC_LIBRARY_URL__) {
+      state.readOnly = true;
+      state.mode = 'public';
+      api.avail = false;
+      try {
+        const res = await fetch(window.__STATIC_LIBRARY_URL__ + '?v=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const raw = await res.json();
+        if (raw && Array.isArray(raw.links)) {
+          state.baseUpdatedAt = String(raw.updatedAt || '');
+          return normalizeLibrary(raw);
+        }
+      } catch (err) {
+        console.warn('静态数据加载失败', err);
+      }
+      return null;
+    }
     // 公网分享页：服务端已把数据和只读标记内嵌到 HTML，首屏不依赖接口
     if (window.__PUBLIC_READONLY__) {
       state.readOnly = true;
