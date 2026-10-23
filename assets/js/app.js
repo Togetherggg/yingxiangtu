@@ -2221,10 +2221,168 @@
     show(initialTab || 'calendar');
   }
 
+  const TUTORIAL_URLS = {
+    public: 'https://togetherggg.github.io/yingxiangtu/',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=8',
+    local: 'http://127.0.0.1:51888/'
+  };
+
+  function settingsContent(key) {
+    const A = TUTORIAL_URLS.admin;
+    const P = TUTORIAL_URLS.public;
+    if (key === 'guide') {
+      return '<h4>公网页怎么用</h4>' +
+        '<ol>' +
+        '<li><strong>看风格</strong>：首页「风格总览」按装修风格排列，点任意风格进入该风格的链接列表。</li>' +
+        '<li><strong>全部链接</strong>：左栏「全部链接」可以一次看所有效果图。</li>' +
+        '<li><strong>搜索</strong>：顶部搜索框输入标题、网址、风格或来源，支持空格分词；按 <span class="settings-kbd">Ctrl</span> + <span class="settings-kbd">K</span> 快速聚焦。</li>' +
+        '<li><strong>视图和主题</strong>：右上角切换网格/列表、明暗主题；选择会保存在当前浏览器。</li>' +
+        '<li><strong>手机 / 微信</strong>：点右上角手机图标，复制公网链接或扫码；把链接发到微信即可在手机打开。</li>' +
+        '<li><strong>卡片操作</strong>：点卡片打开效果图网站；卡片上的复制按钮可以复制原始链接。</li>' +
+        '</ol>' +
+        '<h4>首页「设计师工作台」</h4>' +
+        '<ul>' +
+        '<li><strong>设计师日程</strong>：显示最近 4 条未完成日程；点「全部日程 →」看完整日程；日历上有圆点的日期表示当天有安排，点日期可看当天日程。</li>' +
+        '<li><strong>天气</strong>：显示当前天气和未来 3 天；点「7 天 →」打开完整预报，可切换 14 个国内城市，默认丽水。</li>' +
+        '<li><strong>日历</strong>：本月迷你日历，今天高亮，上/下月切换；点「打开 →」进入大日历。</li>' +
+        '<li><strong>风水参考</strong>：每天一条小提示；点「详细 →」查看 15 个板块的完整内容。属于传统民俗与居住经验参考。</li>' +
+        '</ul>' +
+        '<h4>「待分类」是什么</h4>' +
+        '<p>管理页删除某个风格时，<strong>不会删除里面的效果图</strong>，链接会集中到「待分类」。公网页的「待分类」也可以正常浏览；把链接归回某个风格的操作在管理页完成。</p>' +
+        '<div class="settings-tip is-info">' + ico('info') + '<span>公网页对访客是只读的：可以看、搜索、分享，但不能修改任何内容。</span></div>' +
+        '<h4>访问地址</h4>' +
+        '<p>公网页：<a href="' + P + '" target="_blank" rel="noopener">' + P + '</a></p>' +
+        '<p>本地版：<a href="' + TUTORIAL_URLS.local + '" target="_blank" rel="noopener">' + TUTORIAL_URLS.local + '</a>（需电脑上的「效果图网址」正在运行）</p>';
+    }
+    if (key === 'admin') {
+      return '<h4>管理链接是什么</h4>' +
+        '<p>管理页只有你自己使用，用来添加/删除效果图、管理风格、维护设计师日程。访客打开公网页看不到管理按钮。</p>' +
+        '<p>管理页地址：<a href="' + A + '" target="_blank" rel="noopener">' + A + '</a></p>' +
+        '<div class="settings-tip">' + ico('alert') + '<span>管理页需要 GitHub Token。<strong>本教程和公网页都不会显示 Token</strong>；Token 只保存在你自己的电脑和浏览器里，不要发给别人。</span></div>' +
+        '<h4>第一次登录</h4>' +
+        '<ol>' +
+        '<li>打开上面的管理页地址。</li>' +
+        '<li>把 GitHub Token 粘贴到输入框，点「进入管理」。Token 在本机 <code>C:\\效果图网址\\data\\github.json</code> 里；桌面「效果图管理」快捷方式会自动带上 Token。</li>' +
+        '<li>手机第一次打开需要粘贴一次 Token，之后会自动记住；不要在公共电脑上勾选记住。</li>' +
+        '<li>登录后右上角有「退出管理」，可随时清除本机 Token。</li>' +
+        '</ol>' +
+        '<h4>添加效果图</h4>' +
+        '<ol>' +
+        '<li>在「添加效果图」填链接地址；标题可留空；选择风格。</li>' +
+        '<li>封面图可以粘贴图片 URL，也可以点「上传本地图片」选择 PNG/JPG，会自动压缩成 JPG 上传到你的 GitHub 并填入 URL。</li>' +
+        '<li>点「添加这条链接」，再点右下角「保存并发布」。</li>' +
+        '<li>约 2 秒保存完成；刷新公网页即可看到。新封面图第一次需要等 GitHub Pages 部署，通常约 1 分钟。</li>' +
+        '</ol>' +
+        '<h4>风格管理</h4>' +
+        '<ul>' +
+        '<li><strong>新增风格</strong>：在「风格管理」填名称，点预设色块或彩色圆环自定义颜色，点「添加风格」。</li>' +
+        '<li><strong>删除风格</strong>：点风格右侧「删除」。里面的链接<strong>不会删除</strong>，会移到「待分类」。</li>' +
+        '<li><strong>重命名/改色</strong>：目前管理页支持新增和删除；改名可在本地版操作。删除前想保留链接，可先移动到别的风格。</li>' +
+        '</ul>' +
+        '<h4>「待分类」怎么移动</h4>' +
+        '<ol>' +
+        '<li>在「风格管理」点「待分类」行的「查看」，或直接搜索，筛选出待分类链接。</li>' +
+        '<li>把链接行拖到左侧目标风格上；松手后会弹「确认移动 / 取消」。</li>' +
+        '<li>手机不方便拖时，点链接行的「移动」按钮，选择目标风格，再确认。</li>' +
+        '<li>移动后记得「保存并发布」。原风格会显示在链接下方，方便判断该放回哪里。</li>' +
+        '</ol>' +
+        '<h4>设计师日程</h4>' +
+        '<ol>' +
+        '<li>在管理页「设计师日程」选择日期、时间，填标题、类型（量房/方案/施工/客户/其他）和备注。</li>' +
+        '<li>点「添加日程」；可标记「完成」或「删除」。</li>' +
+        '<li>点「保存并发布」后，公网页工作台的日程、日历圆点和完整日程表会同步。</li>' +
+        '</ol>' +
+        '<h4>保存与发布</h4>' +
+        '<ul>' +
+        '<li>所有修改先只是草稿；点右下角「保存并发布」才写入 GitHub。</li>' +
+        '<li>保存后数据走快速通道，公网页刷新即可；图片文件需要等 GitHub Pages 部署。</li>' +
+        '<li>「放弃修改」会重新读取公网页数据，丢弃未保存的改动。</li>' +
+        '<li>如果提示冲突，说明公网页已被另一个窗口更新，点「刷新数据」后再改。</li>' +
+        '</ul>' +
+        '<h4>本地版与发布</h4>' +
+        '<ul>' +
+        '<li>桌面「效果图网址」打开本地版；可以批量编辑、搜索、预览、备份。</li>' +
+        '<li>本地改完双击「发布更新到公网」，会上传最新数据 JSON 和新增缩略图。</li>' +
+        '<li>如果同时用管理页，建议以管理页为准；本地旧数据发布前先确认不会覆盖管理页的新内容。</li>' +
+        '</ul>' +
+        '<h4>Token 安全</h4>' +
+        '<ul>' +
+        '<li>Token 等同于仓库写权限，不要发到群里、截图或公开页面。</li>' +
+        '<li>怀疑泄露时：GitHub → Settings → Developer settings → Personal access tokens → 删除旧 Token，新建一个，更新本机 <code>data\\github.json</code>。</li>' +
+        '<li>删除 Token 不会影响已经上线的公网页，只会让管理页/发布无法再写入。</li>' +
+        '</ul>';
+    }
+    if (key === 'faq') {
+      return '<h4>保存后公网页没变化？</h4>' +
+        '<p>先刷新公网页。数据通常几秒内生效；如果刚上传了新封面图，图片要等 GitHub Pages 部署约 1 分钟。仍不显示时按 <span class="settings-kbd">Ctrl</span> + <span class="settings-kbd">F5</span> 强制刷新。</p>' +
+        '<h4>删除风格会把效果图删掉吗？</h4>' +
+        '<p>不会。链接会移到「待分类」，图片文件也还在；公网页的待分类栏目可以继续看，管理页可以把链接移回其它风格。</p>' +
+        '<h4>待分类可以删除或改名吗？</h4>' +
+        '<p>不行，它是系统分类，用来接住被删风格的链接。普通风格可以新增和删除。</p>' +
+        '<h4>日程在哪里改？</h4>' +
+        '<p>在管理页「设计师日程」里添加、完成或删除；公网页只读展示，游客不能改。</p>' +
+        '<h4>天气为什么有时慢？</h4>' +
+        '<p>天气来自 Open-Meteo 公开接口，需要联网，通常 3~5 秒；网络不稳定时会显示提示，稍后刷新或换城市即可。</p>' +
+        '<h4>风水内容准确吗？</h4>' +
+        '<p>内容是传统民俗与居住经验整理，不是专业风水、结构、燃气或消防建议。采光、通风、消防和结构安全永远优先，不要为了方位拆改承重墙或管线。</p>' +
+        '<h4>数据存在哪里？</h4>' +
+        '<p>公网页数据在 GitHub 仓库 <code>Togetherggg/yingxiangtu</code> 的 <code>data/library.json</code>；本地版在 <code>C:\\效果图网址\\data\\library.json</code>；本地服务会保留备份，GitHub 也有每次保存的提交历史。</p>' +
+        '<h4>手机和微信能打开吗？</h4>' +
+        '<p>可以，公网页是 HTTPS 静态站点，手机浏览器和微信都可访问；把公网链接发过去即可。</p>' +
+        '<h4>管理页的“密码”是什么？</h4>' +
+        '<p>不是账号密码，是 GitHub Token。只有持有 Token 的人能进入管理页；Token 不要外发。</p>' +
+        '<h4>本地版打不开？</h4>' +
+        '<p>确认 <code>C:\\效果图网址\\效果图网址.exe</code> 存在，双击桌面「效果图网址」；如果被安全软件拦截，选择允许。</p>' +
+        '<h4>发布很慢？</h4>' +
+        '<p>数据 JSON 是快速通道；慢通常发生在图片文件需要 GitHub Pages 部署时。保存状态显示「已保存」就说明数据已提交，图片稍等即可。</p>';
+    }
+    return '<h4>效果图网址 · 风格灵感库</h4>' +
+      '<p>一个按装修风格整理全景效果图链接的私人资料库，同时提供公网只读页、管理页和本地版。</p>' +
+      '<div class="settings-split">' +
+      '<div class="settings-mini"><b>公网页</b><span>任何人可看，手机/微信可开；只读。</span></div>' +
+      '<div class="settings-mini"><b>管理页</b><span>只有 Token 持有者可改；链接、风格、日程。</span></div>' +
+      '<div class="settings-mini"><b>本地版</b><span>Windows 桌面程序；批量编辑、预览、备份。</span></div>' +
+      '<div class="settings-mini"><b>数据</b><span>GitHub 仓库 JSON；保存即提交，图片经 Pages 部署。</span></div>' +
+      '</div>' +
+      '<h4>当前入口</h4>' +
+      '<p>公网页：<a href="' + P + '" target="_blank" rel="noopener">' + P + '</a></p>' +
+      '<p>管理页：<a href="' + A + '" target="_blank" rel="noopener">' + A + '</a></p>' +
+      '<p>本地版：<a href="' + TUTORIAL_URLS.local + '" target="_blank" rel="noopener">' + TUTORIAL_URLS.local + '</a></p>' +
+      '<h4>设计说明</h4>' +
+      '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261026 · 管理页 v8<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+  }
+
+  function openSettingsModal() {
+    const body = '<div class="life-tabs" id="settingsTabs">' +
+      '<button type="button" data-settings="guide" class="is-active">使用教程</button>' +
+      '<button type="button" data-settings="admin">管理教程</button>' +
+      '<button type="button" data-settings="faq">常见问题</button>' +
+      '<button type="button" data-settings="about">关于</button></div>' +
+      '<div class="settings-doc" id="settingsBody"></div>';
+    const modal = openModal({
+      title: '设置 / 使用教程',
+      desc: '公网页 · 管理页 · 本地版，一份就能看懂',
+      size: 'lg',
+      body: body,
+      footer: '<button class="btn" type="button" data-close>关闭</button>'
+    });
+    const tabs = $$('#settingsTabs button', modal.el);
+    const box = $('#settingsBody', modal.el);
+    function show(key) {
+      tabs.forEach((b) => b.classList.toggle('is-active', b.dataset.settings === key));
+      box.innerHTML = settingsContent(key);
+      box.scrollTop = 0;
+    }
+    tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.settings)));
+    show('guide');
+  }
+
   function bindEvents() {
     $('#themeBtn').addEventListener('click', () => applyTheme(state.theme === 'dark' ? 'light' : 'dark'));
     $('#phoneBtn').addEventListener('click', openPhoneModal);
     $('#lifeBtn').addEventListener('click', openLifeModal);
+    $('#settingsBtn').addEventListener('click', openSettingsModal);
     $('#addBtn').addEventListener('click', () => openForm('add'));
     $('#brandBtn').addEventListener('click', (e) => {
       e.preventDefault();
