@@ -1347,3 +1347,15 @@ html.theme-anim *::after {
 @media (max-width: 560px) {
   .wallpaper-add input[type="url"], .wallpaper-add input[type="text"] { flex: 1 1 100%; }
 }
+.wallpaper-add-wrap {
+  margin: 6px 0 12px; padding: 0 11px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--panel);
+}
+.wallpaper-add-wrap > summary {
+  list-style: none; cursor: pointer; padding: 10px 0;
+  font-size: 11.5px; font-weight: 600; color: var(--text-2);
+  user-select: none;
+}
+.wallpaper-add-wrap > summary::-webkit-details-marker { display: none; }
+.wallpaper-add-wrap[open] > summary { color: var(--text); border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.wallpaper-add-wrap .wallpaper-add { border: 0; background: transparent; margin: 0; padding: 0 0 10px; }
