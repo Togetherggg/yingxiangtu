@@ -553,6 +553,30 @@
   }
 
   let boardCalState = null;
+  let boardPrefs = null;
+  try { const rawBoard = localStorage.getItem('yxg.board.prefs'); if (rawBoard) boardPrefs = JSON.parse(rawBoard); } catch (e) {}
+
+  function boardConfig() {
+    const cfg = Object.assign({ board: true, schedule: true, weather: true, calendar: true, fengshui: true }, state.lib.board || {});
+    if (boardPrefs) {
+      ['board', 'schedule', 'weather', 'calendar', 'fengshui'].forEach((k) => {
+        if (typeof boardPrefs[k] === 'boolean') cfg[k] = boardPrefs[k];
+      });
+    }
+    return cfg;
+  }
+
+  function saveBoardPrefs(patch) {
+    const current = boardConfig();
+    boardPrefs = Object.assign({
+      board: current.board,
+      schedule: current.schedule,
+      weather: current.weather,
+      calendar: current.calendar,
+      fengshui: current.fengshui
+    }, patch);
+    try { localStorage.setItem('yxg.board.prefs', JSON.stringify(boardPrefs)); } catch (e) {}
+  }
 
   function pad2(n) { return String(n).padStart(2, '0'); }
   function localDateStr(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -620,7 +644,8 @@
     const now = new Date();
     const todayStr = localDateStr(now);
     const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    const cfg = Object.assign({ schedule: true, weather: true, calendar: true, fengshui: true }, state.lib.board || {});
+    const cfg = boardConfig();
+    if (cfg.board === false) return '';
     const cards = [];
 
     if (cfg.schedule) {
@@ -2265,6 +2290,33 @@
   function settingsContent(key) {
     const A = TUTORIAL_URLS.admin;
     const P = TUTORIAL_URLS.public;
+    if (key === 'board') {
+      const cfg = boardConfig();
+      const chk = (k) => cfg[k] !== false ? ' checked' : '';
+      return '<h4>首页工作台显示</h4>' +
+        '<p>可以单独决定首页工作台显示哪些模块。隐藏后，风格总览和链接仍然正常；被隐藏的模块仍可从右上角日历图标「生活参考」打开。</p>' +
+        '<div class="settings-board-prefs">' +
+        '<label><input type="checkbox" id="boardPrefMaster" data-board-pref="board"' + chk('board') + '> 显示首页工作台 <span class="sub">总开关</span></label>' +
+        '<label><input type="checkbox" data-board-pref="schedule"' + chk('schedule') + '> 设计师日程</label>' +
+        '<label><input type="checkbox" data-board-pref="weather"' + chk('weather') + '> 天气</label>' +
+        '<label><input type="checkbox" data-board-pref="calendar"' + chk('calendar') + '> 日历</label>' +
+        '<label><input type="checkbox" data-board-pref="fengshui"' + chk('fengshui') + '> 风水参考</label>' +
+        '</div>' +
+        '<div style="margin-bottom:12px"><button class="btn btn-sm" type="button" id="boardPrefsReset">恢复为管理页默认</button></div>' +
+        '<div class="settings-tip is-info">' + ico('info') + '<span>这里的开关只影响<strong>当前浏览器</strong>；要让所有访客看到同样的工作台，请到管理页 →「首页工作台」设置并保存（全局生效）。</span></div>' +
+        '<h4>工作台设置教程</h4>' +
+        '<ol>' +
+        '<li>打开公网页右上角齿轮「设置」→「工作台」。</li>' +
+        '<li>取消某个勾选，例如「天气」，关闭设置窗口后首页工作台就不显示天气卡片。</li>' +
+        '<li>取消「显示首页工作台」总开关，整个工作台隐藏，只保留风格总览和链接。</li>' +
+        '<li>隐藏后，右上角日历图标仍可打开「生活参考」，里面有日程 / 日历 / 天气 / 风水四个标签。</li>' +
+        '<li>想恢复，重新勾选，或点「恢复为管理页默认」。</li>' +
+        '<li>要让所有访客都生效：到管理页 →「首页工作台」勾选并「保存并发布」；那是全局设置。</li>' +
+        '</ol>' +
+        '<h4>两种设置的区别</h4>' +
+        '<p><strong>公网页设置（本页）</strong>：只影响你当前浏览器，适合自己看着舒服。<br><strong>管理页 → 首页工作台</strong>：写入公网数据，所有访客都会按这个显示。</p>' +
+        '<p>管理页地址：<a href="' + A + '" target="_blank" rel="noopener">' + A + '</a></p>';
+    }
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
         '<ol>' +
@@ -2282,6 +2334,8 @@
         '<li><strong>日历</strong>：本月迷你日历，今天高亮，上/下月切换；点「打开 →」进入大日历。</li>' +
         '<li><strong>风水参考</strong>：每天一条小提示；点「详细 →」查看 15 个板块的完整内容。属于传统民俗与居住经验参考。</li>' +
         '</ul>' +
+        '<h4>工作台显示设置</h4>' +
+        '<p>打开右上角齿轮「设置」→「工作台」，可以单独显示/隐藏设计师日程、天气、日历、风水参考，也可以关闭整个工作台。这个开关只影响当前浏览器；要让所有访客一起变，请到管理页 →「首页工作台」保存。隐藏后仍可从右上角日历图标打开「生活参考」。</p>' +
         '<h4>「待分类」是什么</h4>' +
         '<p>管理页删除某个风格时，<strong>不会删除里面的效果图</strong>，链接会集中到「待分类」。公网页的「待分类」也可以正常浏览；把链接归回某个风格的操作在管理页完成。</p>' +
         '<div class="settings-tip is-info">' + ico('info') + '<span>公网页对访客是只读的：可以看、搜索、分享，但不能修改任何内容。</span></div>' +
@@ -2394,19 +2448,20 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261030 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261031 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
     const body = '<div class="life-tabs" id="settingsTabs">' +
-      '<button type="button" data-settings="guide" class="is-active">使用教程</button>' +
+      '<button type="button" data-settings="board" class="is-active">工作台</button>' +
+      '<button type="button" data-settings="guide">使用教程</button>' +
       '<button type="button" data-settings="admin">管理教程</button>' +
       '<button type="button" data-settings="faq">常见问题</button>' +
       '<button type="button" data-settings="about">关于</button></div>' +
       '<div class="settings-doc" id="settingsBody"></div>';
     const modal = openModal({
       title: '设置 / 使用教程',
-      desc: '公网页 · 管理页 · 本地版，一份就能看懂',
+      desc: '工作台显示 · 公网页 · 管理页 · 本地版',
       size: 'lg',
       body: body,
       footer: '<button class="btn" type="button" data-close>关闭</button>'
@@ -2419,9 +2474,38 @@
       const sc = box.closest('.modal-body');
       if (sc) sc.scrollTop = 0;
       bindSettingsActions(box);
+      bindBoardPrefsSettings(box);
     }
     tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.settings)));
-    show('guide');
+    show('board');
+  }
+
+  function bindBoardPrefsSettings(box) {
+    const inputs = $$('[data-board-pref]', box);
+    if (!inputs.length) return;
+    const master = $('#boardPrefMaster', box);
+    const modules = inputs.filter((cb) => cb.id !== 'boardPrefMaster');
+    const cfg = boardConfig();
+    inputs.forEach((cb) => { cb.checked = cfg[cb.dataset.boardPref] !== false; });
+    function sync() {
+      const off = master && !master.checked;
+      modules.forEach((cb) => { cb.disabled = off; });
+    }
+    sync();
+    inputs.forEach((cb) => cb.addEventListener('change', () => {
+      saveBoardPrefs({ [cb.dataset.boardPref]: cb.checked });
+      sync();
+      if (state.scope === 'home' && !state.query) renderHome();
+    }));
+    const reset = $('#boardPrefsReset', box);
+    if (reset) reset.addEventListener('click', () => {
+      boardPrefs = null;
+      try { localStorage.removeItem('yxg.board.prefs'); } catch (e) {}
+      const next = boardConfig();
+      inputs.forEach((cb) => { cb.checked = next[cb.dataset.boardPref] !== false; });
+      sync();
+      if (state.scope === 'home' && !state.query) renderHome();
+    });
   }
 
   function bindSettingsActions(box) {
