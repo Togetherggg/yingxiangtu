@@ -1,6 +1,6 @@
 {
     "version":  1,
-    "updatedAt":  "2026-10-23T08:02:06.7605778Z",
+    "updatedAt":  "2026-10-23T13:10:24.5030457Z",
     "categories":  [
                        {
                            "id":  "c01",
@@ -79,6 +79,13 @@
                            "name":  "简中",
                            "color":  "#5FD3B4",
                            "order":  12
+                       },
+                       {
+                           "id":  "uncategorized",
+                           "name":  "待分类",
+                           "color":  "#8B95A7",
+                           "order":  999,
+                           "system":  true
                        }
                    ],
     "links":  [
@@ -645,7 +652,8 @@
               ],
     "tombstones":  [
                        "https://example.com/publish-test-1",
-                       "https://example.com/function-check"
+                       "https://example.com/function-check",
+                       "https://example.com/local-check"
                    ],
     "buildInfo":  {
                       "screenedAt":  "2026-10-22T21:30:00+08:00",
