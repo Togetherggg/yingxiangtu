@@ -204,7 +204,7 @@
   'use strict';
   const OWNER = 'Togetherggg';
   const REPO = 'yingxiangtu';
-  const FILE = 'index.html';
+  const FILE = 'data/library.json';
   const API = 'https://api.github.com/repos/' + OWNER + '/' + REPO;
   const LS_TOKEN = 'yxg.admin.token.v1';
   const PALETTE = ['#C9A227','#B08968','#8A7CFF','#4FC3F7','#5FD3B4','#D9A066','#F2B8B5','#F2D8A8','#C3A6E8','#9AA7B8','#A8B5A2','#D7E1EA'];
@@ -216,7 +216,6 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   let token = '';
-  let html = '';
   let baseSha = '';
   let lib = null;
   let dirty = 0;
@@ -355,14 +354,11 @@
   }
 
   async function loadData() {
-    setStatus('读取公网页数据…');
+    setStatus('读取数据…');
     const repo = await api('GET', '');
     const file = await api('GET', '/contents/' + FILE);
     baseSha = file.sha;
-    html = decodeB64(file.content);
-    const m = html.match(/window\.__PUBLIC_LIBRARY__=([\s\S]*?);<\/script>/);
-    if (!m) throw new Error('没有在 index.html 里找到数据，可能页面结构已变化');
-    lib = JSON.parse(m[1]);
+    lib = JSON.parse(decodeB64(file.content));
     if (!Array.isArray(lib.categories)) lib.categories = [];
     if (!Array.isArray(lib.links)) lib.links = [];
     if (!Array.isArray(lib.tombstones)) lib.tombstones = [];
@@ -395,22 +391,18 @@
     setSaveStatus('正在发布到 GitHub…', 'warn');
     setStatus('正在保存…', 'warn');
     try {
-      const json = JSON.stringify(lib).replace(/<\//g, '<\\/');
-      const newHtml = html.replace(/(window\.__PUBLIC_LIBRARY__=)([\s\S]*?)(;<\/script>)/, function (m, a, b, c) { return a + json + c; });
-      if (newHtml === html) throw new Error('页面数据替换失败，请刷新后重试');
+      const json = JSON.stringify(lib);
       const res = await api('PUT', '/contents/' + FILE, {
         message: '管理后台更新 ' + new Date().toLocaleString('zh-CN'),
-        content: encodeB64(newHtml),
+        content: encodeB64(json),
         branch: 'main',
         sha: baseSha
       });
-      html = newHtml;
       baseSha = res.content.sha;
       dirty = 0;
       updateStats();
-      setSaveStatus('已发布，等待公网页更新…', 'ok');
-      setStatus('已提交，GitHub Pages 构建中…', 'ok');
-      pollBuild();
+      setSaveStatus('已保存，刷新公网页即可看到', 'ok');
+      setStatus('已保存；公网页刷新后生效', 'ok');
     } catch (e) {
       if (e.status === 409) {
         setSaveStatus('公网页已被更新，请点「刷新数据」后重试', 'err');
@@ -423,26 +415,6 @@
       busy = false;
       updateStats();
     }
-  }
-
-  async function pollBuild() {
-    for (let i = 0; i < 36; i++) {
-      await sleep(5000);
-      try {
-        const b = await api('GET', '/pages/builds/latest');
-        if (b.status === 'built') {
-          setStatus('公网页已更新，可以打开查看', 'ok');
-          setSaveStatus('已上线', 'ok');
-          return;
-        }
-        if (b.status === 'errored') {
-          setStatus('Pages 构建失败，请到仓库 Actions 查看', 'err');
-          return;
-        }
-        setStatus('构建中…（约 1 分钟）', 'warn');
-      } catch (e) { /* 忽略轮询错误 */ }
-    }
-    setStatus('已提交，稍后刷新公网页即可', 'warn');
   }
 
   function normalizeUrl(raw) {
@@ -569,7 +541,7 @@
     $('#logoutBtn').addEventListener('click', () => {
       if (dirty && !confirm('有未保存修改，确定退出？')) return;
       localStorage.removeItem(LS_TOKEN);
-      token = ''; lib = null; html = ''; baseSha = ''; dirty = 0;
+      token = ''; lib = null; baseSha = ''; dirty = 0;
       showLogin('');
       $('#tokenInput').value = '';
     });
