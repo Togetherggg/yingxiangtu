@@ -97,6 +97,7 @@
       updatedAt: new Date().toISOString(),
       categories: [],
       links: [],
+      schedule: [],
       tombstones: [],
       buildInfo: null,
       seedVersion: (opts && opts.seedVersion) || 0
@@ -127,6 +128,18 @@
 
     if (Array.isArray(raw.tombstones)) {
       lib.tombstones = raw.tombstones.filter((u) => typeof u === 'string').slice(0, 5000);
+    }
+
+    if (Array.isArray(raw.schedule)) {
+      lib.schedule = raw.schedule.filter((e) => e && typeof e === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(String(e.date || ''))).map((e, i) => ({
+        id: String(e.id || ('e' + (i + 1))).trim() || ('e' + (i + 1)),
+        date: String(e.date).slice(0, 10),
+        time: /^\d{2}:\d{2}$/.test(String(e.time || '')) ? String(e.time).slice(0, 5) : '',
+        title: String(e.title || '').slice(0, 60),
+        type: ['量房', '方案', '施工', '客户', '其他'].indexOf(e.type) >= 0 ? e.type : '其他',
+        note: String(e.note || '').slice(0, 160),
+        done: !!e.done
+      })).filter((e) => e.title).slice(0, 500);
     }
 
     const urlSeen = {};
@@ -533,6 +546,150 @@
     return links;
   }
 
+  let boardCalState = null;
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function localDateStr(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function scheduleDateLabel(date) {
+    const d = new Date(date + 'T12:00:00');
+    const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + week[d.getDay()];
+  }
+  function sortedSchedule() {
+    return (state.lib.schedule || []).slice().sort((a, b) => (a.date + ' ' + (a.time || '99:99')).localeCompare(b.date + ' ' + (b.time || '99:99')));
+  }
+  function scheduleDateSet() {
+    const set = {};
+    sortedSchedule().forEach((e) => { set[e.date] = true; });
+    return set;
+  }
+  const FS_TIPS = [
+    '玄关先做到明亮、干净、鞋子有地方收，进门不堵，就是最好的“藏风聚气”。',
+    '客厅沙发背后有实墙或稳固柜体，动线不绕，坐得安稳比摆件更重要。',
+    '卧室先解决遮光、静音和床头靠实墙；镜子不要正对床。',
+    '厨房先看排烟和灶台与水槽的距离，安全规范永远高于方位说法。',
+    '卫生间干湿分离、排风通畅、门常关，比任何摆件都实用。',
+    '家里不要为了“招财”堆满装饰；留白、通风、好清洁才是长期舒适。',
+    '横梁下避免长期久坐久卧；用吊顶、柜体或家具布局弱化压迫感。',
+    '阳台保持通透，不堆杂物；绿植适量，不挡采光和消防通道。',
+    '书桌座位背后有靠、视线不直冲门口，光线从侧前方来更舒服。',
+    '镜子、尖角、深色墙面先看是否造成不适；住得舒服比“形法”重要。'
+  ];
+  function fengShuiTip() {
+    return FS_TIPS[Math.floor(Date.now() / 86400000) % FS_TIPS.length];
+  }
+
+  function renderBoardCalendar() {
+    const now = new Date();
+    if (!boardCalState) boardCalState = { y: now.getFullYear(), m: now.getMonth() };
+    const y = boardCalState.y;
+    const m = boardCalState.m;
+    const first = new Date(y, m, 1);
+    const start = (first.getDay() + 6) % 7;
+    const days = new Date(y, m + 1, 0).getDate();
+    const prevDays = new Date(y, m, 0).getDate();
+    const events = scheduleDateSet();
+    const todayStr = localDateStr(now);
+    let cells = '';
+    for (let i = 0; i < 42; i++) {
+      const num = i - start + 1;
+      let d, cy = y, cm = m, muted = false;
+      if (num < 1) { d = prevDays + num; muted = true; cm = m - 1; if (cm < 0) { cm = 11; cy--; } }
+      else if (num > days) { d = num - days; muted = true; cm = m + 1; if (cm > 11) { cm = 0; cy++; } }
+      else d = num;
+      const ds = cy + '-' + pad2(cm + 1) + '-' + pad2(d);
+      cells += '<div class="cal-cell bcal-cell' + (muted ? ' is-muted' : '') + (ds === todayStr ? ' is-today' : '') + (events[ds] ? ' has-event' : '') + '" data-bcal-date="' + ds + '">' + d + '</div>';
+    }
+    const box = $('#boardCal');
+    if (!box) return;
+    box.innerHTML = '<div class="cal-top bcal-top"><b>' + y + '年' + (m + 1) + '月</b>' +
+      '<div class="cal-nav"><button type="button" data-bcal="-1" aria-label="上个月">‹</button>' +
+      '<button type="button" data-bcal="today" aria-label="回到今天">今</button>' +
+      '<button type="button" data-bcal="1" aria-label="下个月">›</button></div></div>' +
+      '<div class="cal-week"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>' +
+      '<div class="cal-grid bcal-grid">' + cells + '</div>';
+  }
+
+  function renderDesignerBoard() {
+    const now = new Date();
+    const todayStr = localDateStr(now);
+    const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const upcoming = sortedSchedule().filter((e) => !e.done && e.date >= todayStr).slice(0, 4);
+    const eventsHtml = upcoming.length ? upcoming.map((e) => {
+      const color = ({ '量房': '#4FC3F7', '方案': '#8A7CFF', '施工': '#F2B8B5', '客户': '#5FD3B4', '其他': '#9AA7B8' })[e.type] || '#9AA7B8';
+      const isToday = e.date === todayStr;
+      return '<div class="db-event"><span class="db-ev-time">' + esc(e.time || '全天') + '</span>' +
+        '<span class="db-ev-main"><b>' + esc(e.title) + '</b><small>' + (isToday ? '今天' : scheduleDateLabel(e.date)) + (e.note ? ' · ' + esc(e.note) : '') + '</small></span>' +
+        '<span class="db-ev-type" style="color:' + color + ';border-color:' + color + '33;background:' + color + '12">' + esc(e.type) + '</span></div>';
+    }).join('') : '<div class="db-empty">还没有日程<br><span>在管理页「设计师日程」里添加</span></div>';
+
+    return '<section class="designer-board" aria-label="设计师工作台">' +
+      '<div class="db-card db-schedule"><div class="db-head"><div><span class="db-kicker">DESIGNER DESK</span><h3>设计师日程</h3></div><button class="db-link" type="button" id="boardScheduleAll">全部日程 →</button></div>' +
+        '<div class="db-date">' + now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 · ' + week[now.getDay()] + '</div>' +
+        '<div class="db-events">' + eventsHtml + '</div></div>' +
+      '<div class="db-card db-weather"><div class="db-head"><div><span class="db-kicker">WEATHER</span><h3>天气</h3></div><button class="db-link" type="button" id="boardWeatherOpen">7 天 →</button></div>' +
+        '<div id="boardWeather" class="db-weather-body"><div class="db-loading">天气加载中…</div></div></div>' +
+      '<div class="db-card db-cal"><div class="db-head"><div><span class="db-kicker">CALENDAR</span><h3>日历</h3></div><button class="db-link" type="button" id="boardCalendarOpen">打开 →</button></div><div id="boardCal"></div></div>' +
+      '<div class="db-card db-fs"><div class="db-head"><div><span class="db-kicker">FENG SHUI</span><h3>风水参考</h3></div><button class="db-link" type="button" id="boardFsOpen">详细 →</button></div>' +
+        '<p class="db-fs-tip">' + esc(fengShuiTip()) + '</p><div class="db-fs-note">传统民俗参考，居住舒适与安全优先</div></div>' +
+      '</section>';
+  }
+
+  async function loadBoardWeather() {
+    const el = $('#boardWeather');
+    if (!el) return;
+    try {
+      const city = LIFE_CITIES.filter((c) => c.name === lifeWeatherCity)[0] || LIFE_CITIES[0];
+      const data = await fetchWeatherData(city.name);
+      const daily = data.daily || {};
+      const info = lifeWeatherInfo(daily.weather_code && daily.weather_code[0]);
+      const max = Math.round((daily.temperature_2m_max || [])[0]);
+      const min = Math.round((daily.temperature_2m_min || [])[0]);
+      const times = daily.time || [];
+      const codes = daily.weather_code || [];
+      const maxs = daily.temperature_2m_max || [];
+      const mins = daily.temperature_2m_min || [];
+      const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      let days = '';
+      for (let i = 0; i < Math.min(3, times.length); i++) {
+        const dt = new Date(times[i] + 'T12:00:00');
+        const w = lifeWeatherInfo(codes[i]);
+        days += '<div class="db-w-day"><span>' + (i === 0 ? '今天' : week[dt.getDay()]) + '</span><b>' + w[1] + '</b><small>' + Math.round(maxs[i]) + '° / ' + Math.round(mins[i]) + '°</small></div>';
+      }
+      el.innerHTML = '<div class="db-w-now"><span class="db-w-emoji">' + info[1] + '</span><div class="db-w-main"><b>' + max + '°</b><span>' + info[0] + ' · ' + esc(city.name) + '</span></div><div class="db-w-range">最低 ' + min + '°</div></div>' +
+        '<div class="db-w-days">' + days + '</div>';
+    } catch (e) {
+      el.innerHTML = '<div class="db-empty">天气暂时不可用<br><span>点右上角 7 天查看或稍后再试</span></div>';
+    }
+  }
+
+  function bindDesignerBoard() {
+    if (!$('.designer-board')) return;
+    renderBoardCalendar();
+    const all = $('#boardScheduleAll');
+    if (all) all.addEventListener('click', () => openScheduleModal());
+    const wo = $('#boardWeatherOpen');
+    if (wo) wo.addEventListener('click', () => openLifeModal('weather'));
+    const co = $('#boardCalendarOpen');
+    if (co) co.addEventListener('click', () => openLifeModal('calendar'));
+    const fo = $('#boardFsOpen');
+    if (fo) fo.addEventListener('click', () => openLifeModal('fengshui'));
+    const cal = $('#boardCal');
+    if (cal) cal.addEventListener('click', (e) => {
+      const nav = e.target.closest('[data-bcal]');
+      if (nav) {
+        const v = nav.dataset.bcal;
+        if (v === 'today') { const t = new Date(); boardCalState = { y: t.getFullYear(), m: t.getMonth() }; }
+        else { boardCalState.m += Number(v); if (boardCalState.m < 0) { boardCalState.m = 11; boardCalState.y--; } if (boardCalState.m > 11) { boardCalState.m = 0; boardCalState.y++; } }
+        renderBoardCalendar();
+        return;
+      }
+      const cell = e.target.closest('[data-bcal-date]');
+      if (cell) openScheduleModal(cell.dataset.bcalDate);
+    });
+    loadBoardWeather();
+  }
+
   function renderHome() {
     const cats = sortedCategories();
     const links = state.lib.links;
@@ -562,8 +719,9 @@
       '<button class="style-tile is-add" type="button" id="tileAddCat" style="--d:' + Math.min(i, 12) * 35 + 'ms" aria-label="新建风格">' +
       '<span class="add-inner"><span class="plus-ring">' + ico('plus') + '</span><span>新建风格分类</span></span></button>';
     const content = $('#content');
-    content.innerHTML = '<div class="style-grid">' + tiles + addTile + '</div>';
+    content.innerHTML = renderDesignerBoard() + '<div class="style-grid">' + tiles + addTile + '</div>';
     bindImages(content);
+    bindDesignerBoard();
     const addBtn = $('#tileAddCat');
     if (addBtn) addBtn.addEventListener('click', () => openCategoryForm(null));
   }
@@ -1874,6 +2032,19 @@
   function lifeWeatherInfo(code) {
     return LIFE_WMO[Number(code)] || ['未知', '🌡️'];
   }
+  let weatherCache = { city: '', at: 0, data: null };
+  async function fetchWeatherData(cityName) {
+    const city = LIFE_CITIES.filter((c) => c.name === cityName)[0] || LIFE_CITIES[0];
+    const now = Date.now();
+    if (weatherCache.city === city.name && now - weatherCache.at < 10 * 60 * 1000) return weatherCache.data;
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + city.lat + '&longitude=' + city.lon +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FShanghai&forecast_days=7';
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    weatherCache = { city: city.name, at: now, data: data };
+    return data;
+  }
 
   function renderLifeCalendar(box) {
     const now = new Date();
@@ -1887,6 +2058,7 @@
       const start = (first.getDay() + 6) % 7;
       const days = new Date(y, m + 1, 0).getDate();
       const prevDays = new Date(y, m, 0).getDate();
+      const eventDates = scheduleDateSet();
       let cells = '';
       for (let i = 0; i < 42; i++) {
         const num = i - start + 1;
@@ -1897,7 +2069,8 @@
         const dt = new Date(cy, cm, d);
         const isToday = dt.toDateString() === now.toDateString();
         const dow = dt.getDay();
-        cells += '<div class="cal-cell' + (muted ? ' is-muted' : '') + ((dow === 0 || dow === 6) ? ' is-weekend' : '') + (isToday ? ' is-today' : '') + '">' + d + '</div>';
+        const ds = cy + '-' + pad2(cm + 1) + '-' + pad2(d);
+        cells += '<div class="cal-cell' + (muted ? ' is-muted' : '') + ((dow === 0 || dow === 6) ? ' is-weekend' : '') + (isToday ? ' is-today' : '') + (eventDates[ds] ? ' has-event' : '') + '" data-life-date="' + ds + '">' + d + '</div>';
       }
       box.innerHTML = '<div class="cal-top"><b>' + y + ' 年 ' + (m + 1) + ' 月</b>' +
         '<div class="cal-nav"><button type="button" data-cal="-1" aria-label="上个月">‹</button>' +
@@ -1918,6 +2091,7 @@
         }
         draw();
       }));
+      $$('[data-life-date]', box).forEach((cell) => cell.addEventListener('click', () => openScheduleModal(cell.dataset.lifeDate)));
     }
     draw();
   }
@@ -1937,11 +2111,7 @@
       const target = $('#lifeWeatherBody', box);
       target.innerHTML = '<div class="life-loading">正在获取 ' + esc(city.name) + ' 的天气…</div>';
       try {
-        const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + city.lat + '&longitude=' + city.lon +
-          '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FShanghai&forecast_days=7';
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
+        const data = await fetchWeatherData(city.name);
         if (my !== seq) return;
         const daily = data.daily || {};
         const times = daily.time || [];
@@ -1982,23 +2152,51 @@
 
   function renderLifeFengShui(box) {
     const sections = [
-      ['先记住这几条', '<p>采光、通风、动线顺畅、收纳整洁，比任何“招财布局”都更重要。先保证住得舒服、安全，再谈民俗讲究。</p><p>不要为了所谓方位去拆改承重墙、燃气、排水或消防设施。</p>'],
-      ['玄关', '<p>玄关宜明亮、干净，鞋子收进有门的鞋柜，不堆杂物。灯光明亮柔和，进门不直视尖锐物或镜子。</p><p>传统说法讲“藏风聚气”，实际就是进门不要一眼看穿全屋、动线不要拥堵。</p>'],
-      ['客厅', '<p>沙发背后宜有实墙或稳固柜体，不要背对大门、走道。电视墙不宜过高过厚，避免压迫感。</p><p>茶几与沙发之间留出通行距离；采光面不要被高柜挡住。</p>'],
-      ['卧室', '<p>床头靠实墙，床头两侧留出通道；镜子不要正对床。灯光以暖色、可调光为宜，少放强干扰的电器。</p><p>卧室以安静、遮光、通风为优先，不必堆太多装饰。</p>'],
-      ['厨房', '<p>灶台与水槽之间留操作台面，避免“水火相冲”式的紧贴；油烟机排烟要顺畅，厨房门常关或加装隔断。</p><p>燃气、排烟、插座防水等安全规范优先于任何风水说法。</p>'],
-      ['卫生间', '<p>干湿分离、排风良好，门尽量常关；地面防滑、地漏通畅。传统上不建议卫生间门正对大门、床或餐桌。</p><p>潮湿区域少放电器和易霉物品。</p>'],
-      ['书房 / 工作区', '<p>座位背后有靠，视线不直冲门口；光线从侧前方来，避免屏幕反光。桌面少堆杂物，保持专注。</p>'],
-      ['阳台与绿植', '<p>阳台保持通透，不堆成杂物间；绿植适量，不遮挡采光和消防通道。带刺植物不要放在常走动的窄道。</p>'],
-      ['镜子、尖角与横梁', '<p>镜子不宜正对床、门或沙发久坐位置；家具尖角尽量避开主要动线。横梁下不宜长期久坐或久卧，可用吊顶或家具布局弱化。</p>'],
-      ['颜色与材质', '<p>大面积颜色以低饱和、耐看为主；木、石、布艺的质感比“五行颜色”更影响居住感受。深色可以点缀，但不要压住采光。</p>'],
-      ['2026 年怎么参考', '<p>流年方位、九宫飞星等说法流派很多，不建议据此大改房屋结构。可以把“年度方位”当作整理和清洁的提醒：重点打扫常年不动的角落，保持通风和明亮即可。</p>']
+      ['先看总原则', '<p>风水在居住空间里，最稳定的部分其实都是“物理条件”：采光、通风、干燥、安静、动线顺畅、收纳充足、视线有遮挡但不压抑。先满足这些，再谈方位、摆件和流年。</p><p>任何涉及承重墙、燃气、排水、消防通道、外立面、门窗尺寸的改动，都必须以结构和安全规范为准，不能为了“化解”去冒险。</p><p>同一套房，不同流派说法可能互相矛盾。建议把风水当作整理生活、检查居住舒适度的提醒，而不是必须执行的施工指令。</p>'],
+      ['采光与通风', '<p>白天尽量让主要空间有自然光；长期被高柜、隔断、深色窗帘挡住的采光面，优先调整。灯光分主灯、重点灯、氛围灯，避免一个顶灯照全屋。</p><p>厨房、卫生间、衣帽间要有独立排风；新装修先充分通风，入住后再谈摆件。穿堂风不等于好通风，稳定、可控制的换气更重要。</p>'],
+      ['玄关', '<p>玄关是第一印象，也是换鞋、放包、收快递的过渡区。宜明亮、干净、地面好打理；鞋柜有门，常穿的鞋有固定位置，不把杂物堆在门口。</p><p>传统讲“藏风聚气”，实际效果是进门不要一眼看穿全屋、不要正对尖锐物或镜子、不要被鞋堆绊住动线。空间允许时，用半高柜、格栅或绿植做一点视线缓冲即可。</p>'],
+      ['客厅', '<p>沙发背后宜有实墙或稳固柜体，尽量不要背对大门、主走道或大面积落地窗；这不是“靠山”玄学，而是坐下来的安全感和稳定性。</p><p>电视墙不宜过厚过高，茶几与沙发之间留出通行距离；采光面不要被高柜堵住。客厅的“聚气”更多来自一家人愿意坐下来，而不是摆满招财物。</p>'],
+      ['餐厅', '<p>餐桌尽量避开正对卫生间门和强动线；上方灯光柔和，不要直射眼睛。餐边柜承担收纳，台面留空，吃饭时不被杂物包围。</p><p>传统上讲究“食不言、寝不语”，放到今天就是用餐区安静、整洁、少电视干扰。小户型可以用圆桌或折叠桌，动线比尺寸更重要。</p>'],
+      ['卧室', '<p>床头靠实墙，床头两侧留出通道；镜子不要正对床，衣柜镜可以转向或加帘。灯光以暖色、可调光为宜，主灯不要正压床头。</p><p>卧室优先解决遮光、静音、通风和收纳。少放强干扰电器，床头插座够用即可；不要把卧室做成第二个办公室。</p>'],
+      ['厨房', '<p>灶台与水槽之间留操作台面，避免紧贴；这不是“水火相冲”，而是切菜、盛水、炒菜时互不干扰。油烟机排烟要顺畅，公共烟道止逆阀要检查。</p><p>厨房门常关或加装隔断，减少油烟进入客厅；燃气、排烟、插座防水、地砖防滑等安全规范，永远高于任何方位说法。</p>'],
+      ['卫生间', '<p>干湿分离、排风良好、地漏通畅、地面防滑，是卫生间最重要的四件事。门尽量常关，减少湿气进入卧室和客厅。</p><p>传统上不建议卫生间门正对大门、床或餐桌；如果户型无法改，可以用门帘、隔断、常关门和加强排风来弱化。潮湿区域少放电器和易霉物品。</p>'],
+      ['书房 / 工作区', '<p>座位背后有靠，视线不直冲门口；光线从侧前方来，避免屏幕反光。桌面少堆杂物，常用资料伸手可及。</p><p>如果只能面对墙，保持墙面简洁、留一盏柔和的背景灯；如果背后是走道，用矮柜或屏风制造一点稳定感。专注比“文昌位”更实际。</p>'],
+      ['阳台与绿植', '<p>阳台保持通透，不堆成杂物间；不遮挡采光和消防通道。绿植适量，根据光照和浇水习惯选择，不为了“化煞”摆一排带刺植物。</p><p>带刺植物不要放在常走动的窄道和儿童活动区；水景、鱼缸要考虑承重、防水和日常维护，不能只图好看。</p>'],
+      ['镜子、尖角与横梁', '<p>镜子不宜正对床、门或沙发久坐位置，容易造成眩光和夜间惊吓；家具尖角尽量避开主要动线。横梁下不宜长期久坐久卧，可用吊顶、柜体或家具布局弱化。</p><p>所谓“尖角煞”，很多时候是动线碰撞和视觉压迫；把尖角做成圆角、加软包或调整家具方向，比挂物件更有效。</p>'],
+      ['门窗、动线与收纳', '<p>大门、厨房门、卫生间门不要同时形成一条直通视线；如果无法改门，用门帘、隔断、绿植或改变开门方向来缓冲。门后不要堆杂物，保证逃生通道畅通。</p><p>收纳遵循“藏八露二”：大部分物品进柜，少量常用品露出来。柜子做到顶、少做开放格，是减少杂乱最有效的“风水”。</p>'],
+      ['颜色、材质与灯光', '<p>大面积颜色以低饱和、耐看为主；木、石、布艺的质感比“五行颜色”更影响居住感受。深色可以点缀，但不要压住采光。</p><p>灯光分层次：主灯负责基础照明，阅读灯、氛围灯负责局部。色温建议 3000K~4000K，卧室可更暖；避免一个冷白顶灯照全屋。</p>'],
+      ['2026 年怎么参考', '<p>流年方位、九宫飞星等说法流派很多，不建议据此大改房屋结构。可以把“年度方位”当作整理和清洁的提醒：重点打扫常年不动的角落，保持通风和明亮即可。</p><p>如果看到“某方位必须放某物”的说法，先判断它是否影响动线、消防、采光和预算；影响生活的，不做；只是小摆件的，可以当作装饰乐趣。</p>'],
+      ['常见误区', '<p>误区一：摆满招财物。空间拥挤、积灰、难清洁，反而降低居住质量。</p><p>误区二：为了“化煞”拆改结构。承重墙、燃气、排水、消防不能动。</p><p>误区三：把流年方位当成施工图。方位说法每年变，房子要住很多年，稳定舒适更重要。</p><p>误区四：只看风水不看采光通风。住得健康、睡得安稳，才是最好的“风水”。</p>']
     ];
     box.innerHTML = '<div class="fs-warn">' + ico('alert') + '<span>以下为传统民俗与居住经验整理，仅供装修参考，不构成专业风水、结构、燃气或消防安全建议。采光、通风、消防、结构安全永远优先。</span></div>' +
       '<div class="fs-list">' + sections.map((s, i) => '<details class="fs-item"' + (i === 0 ? ' open' : '') + '><summary>' + s[0] + '</summary><div class="fs-text">' + s[1] + '</div></details>').join('') + '</div>';
   }
 
-  function openLifeModal() {
+  function openScheduleModal(dateFilter) {
+    const all = sortedSchedule();
+    const events = dateFilter ? all.filter((e) => e.date === dateFilter) : all;
+    const colors = { '量房': '#4FC3F7', '方案': '#8A7CFF', '施工': '#F2B8B5', '客户': '#5FD3B4', '其他': '#9AA7B8' };
+    const body = '<div class="schedule-list">' + (events.length ? events.map((e) => {
+      const color = colors[e.type] || colors['其他'];
+      const d = new Date(e.date + 'T12:00:00');
+      const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      return '<div class="schedule-item' + (e.done ? ' is-done' : '') + '">' +
+        '<div class="schedule-when"><b>' + (d.getMonth() + 1) + '/' + d.getDate() + '</b><span>' + week[d.getDay()] + ' · ' + esc(e.time || '全天') + '</span></div>' +
+        '<div class="schedule-main"><b>' + esc(e.title) + '</b><span>' + (e.note ? esc(e.note) : '—') + '</span></div>' +
+        '<span class="schedule-type" style="color:' + color + ';border-color:' + color + '33;background:' + color + '12">' + esc(e.type) + '</span>' +
+        '</div>';
+    }).join('') : '<div class="life-loading">' + (dateFilter ? '这一天没有日程' : '还没有日程') + '</div>') + '</div>' +
+      '<div class="life-note">日程由管理页「设计师日程」维护；这里只读展示，量房 / 方案 / 施工 / 客户都能记录。</div>';
+    openModal({
+      title: dateFilter ? '设计师日程 · ' + scheduleDateLabel(dateFilter) : '设计师日程',
+      desc: '量房、方案、施工、客户与备忘',
+      size: 'md',
+      body: body,
+      footer: '<button class="btn" type="button" data-close>关闭</button>'
+    });
+  }
+
+  function openLifeModal(initialTab) {
     const body = '<div class="life-tabs" id="lifeTabs">' +
       '<button type="button" data-life="calendar" class="is-active">日历</button>' +
       '<button type="button" data-life="weather">天气</button>' +
@@ -2020,7 +2218,7 @@
       else renderLifeFengShui(box);
     }
     tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.life)));
-    show('calendar');
+    show(initialTab || 'calendar');
   }
 
   function bindEvents() {
