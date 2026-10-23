@@ -1118,3 +1118,10 @@ body { -webkit-tap-highlight-color: transparent; }
 #helpResult p { margin: 0 0 9px; }
 #helpResult code { font-size: 11px; }
 @media (max-width: 560px) { .settings-sticker-wrap { align-items: flex-start; } .settings-sticker { width: 112px; height: 112px; } }
+/* 工作台模块可单独隐藏：用 flex 让剩余卡片自动铺满 */
+.designer-board { display: flex; flex-wrap: wrap; gap: 12px; }
+.designer-board .db-card { flex: 1 1 220px; min-width: 0; }
+.designer-board .db-schedule { flex: 1.45 1 300px; grid-column: auto; }
+@media (max-width: 700px) {
+  .designer-board .db-card { flex: 1 1 100%; }
+}
