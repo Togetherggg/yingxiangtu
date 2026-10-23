@@ -153,7 +153,13 @@
             </div>
             <div class="adm-field">
               <label for="addCover">封面图 URL（可选）</label>
-              <input class="input" id="addCover" type="text" placeholder="https://…/cover.jpg" autocomplete="off" spellcheck="false">
+              <input class="input" id="addCover" type="text" placeholder="https://…/cover.jpg，或点下方上传" autocomplete="off" spellcheck="false">
+              <div class="adm-row" style="margin-top:8px">
+                <label class="btn btn-sm" for="coverFile" style="flex:0 0 auto;white-space:nowrap;cursor:pointer">上传本地图片</label>
+                <input id="coverFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+                <span id="coverStatus" class="adm-tip" style="margin:0;align-self:center"></span>
+              </div>
+              <div class="adm-tip" style="margin-top:4px">PNG / JPG 会压缩成 JPG 上传到你的 GitHub，并自动填入 URL。</div>
             </div>
             <button class="btn btn-primary" type="submit" style="width:100%">添加这条链接</button>
           </form>
@@ -429,6 +435,83 @@
     return parsed;
   }
 
+  function loadImageFile(file) {
+    return new Promise(function (resolve, reject) {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('图片无法读取')); };
+      img.src = url;
+    });
+  }
+
+  async function makeCoverJpeg(file) {
+    const img = await loadImageFile(file);
+    const maxSide = 1400;
+    let w = img.naturalWidth || img.width;
+    let h = img.naturalHeight || img.height;
+    const scale = Math.min(1, maxSide / w, maxSide / h);
+    w = Math.max(1, Math.round(w * scale));
+    h = Math.max(1, Math.round(h * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (blob) { blob ? resolve(blob) : reject(new Error('图片处理失败')); }, 'image/jpeg', 0.84);
+    });
+  }
+
+  async function blobToBase64(blob) {
+    const buf = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(bin);
+  }
+
+  async function uploadCover(file) {
+    if (!file) return;
+    const statusEl = $('#coverStatus');
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type || '')) {
+      statusEl.textContent = '请选择 PNG / JPG / WEBP 图片';
+      statusEl.style.color = 'var(--warn)';
+      return;
+    }
+    statusEl.textContent = '正在压缩图片…';
+    statusEl.style.color = 'var(--text-3)';
+    try {
+      const blob = await makeCoverJpeg(file);
+      if (blob.size > 5 * 1024 * 1024) throw new Error('图片太大，请换一张');
+      statusEl.textContent = '正在上传到 GitHub…';
+      const name = 'cover-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6) + '.jpg';
+      const path = 'assets/thumbs/' + name;
+      const b64 = await blobToBase64(blob);
+      await api('PUT', '/contents/' + path, {
+        message: 'upload cover ' + name,
+        content: b64,
+        branch: 'main'
+      });
+      const url = 'https://togetherggg.github.io/yingxiangtu/' + path;
+      $('#addCover').value = url;
+      statusEl.textContent = '已上传并填入 URL；保存链接后生效';
+      statusEl.style.color = 'var(--ok)';
+      setStatus('封面上传成功', 'ok');
+    } catch (e) {
+      statusEl.textContent = '上传失败：' + e.message;
+      statusEl.style.color = 'var(--fail)';
+      setStatus('封面上传失败', 'err');
+    } finally {
+      $('#coverFile').value = '';
+    }
+  }
+
   function addLink(e) {
     e.preventDefault();
     const parsed = normalizeUrl($('#addUrl').value);
@@ -550,6 +633,10 @@
     $('#reloadBtn').addEventListener('click', reloadData);
     $('#saveBtn').addEventListener('click', save);
     $('#addLinkForm').addEventListener('submit', addLink);
+    $('#coverFile').addEventListener('change', function (e) {
+      const f = e.target.files && e.target.files[0];
+      if (f) uploadCover(f);
+    });
     $('#addCatForm').addEventListener('submit', addCat);
     $('#filterInput').addEventListener('input', renderLinks);
     $('#catList').addEventListener('click', (e) => {
