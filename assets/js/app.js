@@ -611,6 +611,66 @@
   let wallpaperList = [];
   let wallpaperIndex = 0;
   let wallpaperVisible = 'A';
+  const WALLPAPER_CUSTOM_KEY = 'yxg.wallpapers.custom';
+  let customWallpapers = [];
+
+  function allWallpapers() {
+    return WALLPAPERS.concat(customWallpapers);
+  }
+
+  function loadCustomWallpapers() {
+    let arr = [];
+    try { const raw = localStorage.getItem(WALLPAPER_CUSTOM_KEY); if (raw) arr = JSON.parse(raw); } catch (e) { arr = []; }
+    customWallpapers = (Array.isArray(arr) ? arr : []).filter((w) => w && typeof w.id === 'string' && typeof w.src === 'string' && typeof w.thumb === 'string' && WALLPAPER_THEMES.some((t) => t.id === w.theme)).map((w) => ({
+      id: w.id,
+      theme: w.theme,
+      title: String(w.title || '自定义壁纸').slice(0, 30),
+      src: w.src,
+      thumb: w.thumb,
+      custom: true
+    })).slice(-30);
+  }
+
+  function saveCustomWallpapers() {
+    try { localStorage.setItem(WALLPAPER_CUSTOM_KEY, JSON.stringify(customWallpapers)); return true; } catch (e) { return false; }
+  }
+
+  function drawWallpaperCover(img, w, h, quality) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0b0e14';
+    ctx.fillRect(0, 0, w, h);
+    const scale = Math.max(w / img.width, h / img.height);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+
+  function compressWallpaperFile(file) {
+    return new Promise((resolve, reject) => {
+      if (!file || !/^image\//.test(file.type || '')) { reject(new Error('请选择图片文件')); return; }
+      if (file.size > 20 * 1024 * 1024) { reject(new Error('图片不能超过 20MB')); return; }
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('图片读取失败'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('图片无法解析'));
+        img.onload = () => {
+          try {
+            resolve({
+              src: drawWallpaperCover(img, 1600, 1000, .82),
+              thumb: drawWallpaperCover(img, 400, 250, .75)
+            });
+          } catch (e) { reject(new Error('图片处理失败')); }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   function wallpaperThemeLabel(theme) {
     const item = WALLPAPER_THEMES.filter((t) => t.id === theme)[0];
@@ -622,7 +682,7 @@
     let parsed = null;
     try { const raw = localStorage.getItem(WALLPAPER_KEY); if (raw) parsed = JSON.parse(raw); } catch (e) {}
     wallpaperPrefs = Object.assign(def, parsed || {});
-    if (!WALLPAPERS.some((w) => w.id === wallpaperPrefs.selected)) wallpaperPrefs.selected = 'w1';
+    if (!allWallpapers().some((w) => w.id === wallpaperPrefs.selected)) wallpaperPrefs.selected = 'w1';
     if (!WALLPAPER_THEMES.some((t) => t.id === wallpaperPrefs.theme)) wallpaperPrefs.theme = 'all';
     const dur = Number(wallpaperPrefs.duration);
     wallpaperPrefs.duration = WALLPAPER_DURATIONS.some((d) => d.value === dur) ? dur : 900;
@@ -636,7 +696,7 @@
   }
 
   function wallpapersFor(theme) {
-    return theme === 'all' ? WALLPAPERS.slice() : WALLPAPERS.filter((w) => w.theme === theme);
+    return theme === 'all' ? allWallpapers() : allWallpapers().filter((w) => w.theme === theme);
   }
 
   function showWallpaper(wallpaper) {
@@ -689,7 +749,7 @@
       return;
     }
     wallpaperList = wallpapersFor(wallpaperPrefs.theme);
-    if (!wallpaperList.length) wallpaperList = WALLPAPERS.slice();
+    if (!wallpaperList.length) wallpaperList = allWallpapers();
     let idx = wallpaperList.findIndex((w) => w.id === wallpaperPrefs.selected);
     if (idx < 0) {
       idx = 0;
@@ -703,6 +763,7 @@
   }
 
   function initWallpaper() {
+    loadCustomWallpapers();
     loadWallpaperPrefs();
     applyWallpaper();
   }
@@ -2422,9 +2483,10 @@
     if (key === 'wallpaper') {
       const w = wallpaperPrefs || loadWallpaperPrefs();
       const themeChips = WALLPAPER_THEMES.map((t) => '<button type="button" data-wallpaper-theme="' + t.id + '" class="' + (w.theme === t.id ? 'is-active' : '') + '">' + t.label + '</button>').join('');
-      const cards = WALLPAPERS.map((x) => '<button type="button" class="wallpaper-card' + (w.selected === x.id ? ' is-selected' : '') + '" data-wallpaper-pick="' + x.id + '" aria-pressed="' + (w.selected === x.id ? 'true' : 'false') + '">' +
+      const cards = allWallpapers().map((x) => '<button type="button" class="wallpaper-card' + (w.selected === x.id ? ' is-selected' : '') + '" data-wallpaper-pick="' + x.id + '" aria-pressed="' + (w.selected === x.id ? 'true' : 'false') + '">' +
         '<img src="' + x.thumb + '" alt="' + esc(x.title) + '" loading="lazy">' +
-        '<span><b>' + esc(x.title) + '</b><em>' + wallpaperThemeLabel(x.theme) + '</em></span>' +
+        '<span><b>' + esc(x.title) + '</b><em>' + wallpaperThemeLabel(x.theme) + (x.custom ? ' · 自定义' : '') + '</em></span>' +
+        (x.custom ? '<span class="wallpaper-del" data-wallpaper-del="' + x.id + '" role="button" tabindex="0" aria-label="删除这张自定义壁纸">×</span>' : '') +
         '<i class="wallpaper-pick-check">✓</i></button>').join('');
       const durOpts = WALLPAPER_DURATIONS.map((d) => '<option value="' + d.value + '"' + (w.duration === d.value ? ' selected' : '') + '>' + d.label + '</option>').join('');
       return '<h4>艺术建筑壁纸</h4>' +
@@ -2433,6 +2495,20 @@
         '<h4>选择单张壁纸</h4>' +
         '<p class="wallpaper-hint">点任意一张即选为单张，并自动关闭轮播。</p>' +
         '<div class="wallpaper-grid">' + cards + '</div>' +
+        '<h4>添加自己的壁纸</h4>' +
+        '<div class="wallpaper-add">' +
+        '<div class="wallpaper-add-row">' +
+        '<input id="wallpaperUrl" type="url" placeholder="粘贴图片 URL（https://...）">' +
+        '<button class="btn btn-sm" type="button" id="wallpaperPickFile">上传本地图片</button>' +
+        '<input id="wallpaperFile" type="file" accept="image/*" hidden>' +
+        '</div>' +
+        '<div class="wallpaper-add-row">' +
+        '<input id="wallpaperTitle" type="text" maxlength="30" placeholder="壁纸名称（可留空）">' +
+        '<select id="wallpaperThemeNew"><option value="interior">室内</option><option value="exterior">室外</option><option value="garden">园艺</option></select>' +
+        '<button class="btn btn-primary btn-sm" type="button" id="wallpaperAdd">添加壁纸</button>' +
+        '</div>' +
+        '<div class="wallpaper-add-msg" id="wallpaperAddMsg">支持 JPG / PNG；本地图片会压缩后只保存在当前浏览器，不会上传到公网仓库。</div>' +
+        '</div>' +
         '<h4>轮播与播放时长</h4>' +
         '<div class="wallpaper-theme-row"><span>轮播主题</span><div class="wallpaper-theme-tabs">' + themeChips + '</div></div>' +
         '<div class="wallpaper-controls">' +
@@ -2448,6 +2524,8 @@
         '<li>点任意一张壁纸 = 只显示这一张，轮播自动取消；再选「每张播放时长」。</li>' +
         '<li>单张 + 有限时长：到 1 分钟 / 5 分钟 / 15 分钟 / 30 分钟 / 1 小时 / 12 小时 / 24 小时后壁纸自动关闭；选「永久」则一直显示。</li>' +
         '<li>想自动换图：勾选「轮播全部」，选轮播主题（全部 / 室内 / 室外 / 园艺）；每张按时长切换，选「永久」则停在当前这张。</li>' +
+        '<li>添加自己的壁纸：粘贴图片 URL，或点「上传本地图片」；选室内 / 室外 / 园艺，点「添加壁纸」。自定义壁纸会出现在上方，和内置壁纸一样可以单选、轮播、设时长；点左上角 × 可删除。</li>' +
+        '<li>自定义壁纸只保存在当前浏览器，不会上传到公网仓库；换设备或清理浏览器数据后会消失。</li>' +
         '<li>设置只保存在当前浏览器；换设备或清理浏览器数据后会恢复默认。</li>' +
         '</ol>';
     }
@@ -2611,7 +2689,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261037 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261038 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -2639,13 +2717,13 @@
       if (sc) sc.scrollTop = 0;
       bindSettingsActions(box);
       bindBoardPrefsSettings(box);
-      bindWallpaperSettings(box);
+      bindWallpaperSettings(box, show);
     }
     tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.settings)));
     show('board');
   }
 
-  function bindWallpaperSettings(box) {
+  function bindWallpaperSettings(box, rerender) {
     const enabled = $('#wallpaperEnabled', box);
     if (!enabled) return;
     const syncTheme = () => $$('[data-wallpaper-theme]', box).forEach((b) => {
@@ -2691,6 +2769,76 @@
       saveWallpaperPrefs();
       applyWallpaper();
     });
+
+    const fileInput = $('#wallpaperFile', box);
+    const pickBtn = $('#wallpaperPickFile', box);
+    if (pickBtn && fileInput) pickBtn.addEventListener('click', () => fileInput.click());
+    if (fileInput) fileInput.addEventListener('change', () => {
+      const msg = $('#wallpaperAddMsg', box);
+      const file = fileInput.files && fileInput.files[0];
+      if (msg) msg.textContent = file ? '已选择：' + file.name : '支持 JPG / PNG；本地图片会压缩后只保存在当前浏览器。';
+    });
+    const addBtn = $('#wallpaperAdd', box);
+    if (addBtn) addBtn.addEventListener('click', async () => {
+      const msg = $('#wallpaperAddMsg', box);
+      const url = ($('#wallpaperUrl', box).value || '').trim();
+      const title = ($('#wallpaperTitle', box).value || '').trim().slice(0, 30) || '自定义壁纸';
+      const theme = $('#wallpaperThemeNew', box).value;
+      const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+      if (!file && !url) { if (msg) msg.textContent = '请填写图片 URL 或上传本地图片。'; return; }
+      if (!file && !/^https?:\/\//i.test(url)) { if (msg) msg.textContent = '图片 URL 需要以 http:// 或 https:// 开头。'; return; }
+      addBtn.disabled = true;
+      if (msg) msg.textContent = '处理中…';
+      try {
+        let src = url;
+        let thumb = url;
+        if (file) {
+          const data = await compressWallpaperFile(file);
+          src = data.src;
+          thumb = data.thumb;
+        }
+        const wall = {
+          id: 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+          theme: theme,
+          title: title,
+          src: src,
+          thumb: thumb,
+          custom: true
+        };
+        customWallpapers.push(wall);
+        if (!saveCustomWallpapers()) {
+          customWallpapers.pop();
+          if (msg) msg.textContent = '浏览器存储空间不足，换一张小一点的图片或先删除旧的自定义壁纸。';
+          addBtn.disabled = false;
+          return;
+        }
+        wallpaperPrefs.selected = wall.id;
+        wallpaperPrefs.rotate = false;
+        wallpaperPrefs.enabled = true;
+        wallpaperPrefs.theme = 'all';
+        saveWallpaperPrefs();
+        applyWallpaper();
+        if (rerender) rerender('wallpaper');
+      } catch (err) {
+        if (msg) msg.textContent = err.message || '添加失败，请换一张图片。';
+        addBtn.disabled = false;
+      }
+    });
+    $$('[data-wallpaper-del]', box).forEach((el) => el.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = el.dataset.wallpaperDel;
+      customWallpapers = customWallpapers.filter((w) => w.id !== id);
+      saveCustomWallpapers();
+      if (wallpaperPrefs.selected === id) {
+        wallpaperPrefs.selected = 'w1';
+        wallpaperPrefs.rotate = false;
+        wallpaperPrefs.theme = 'all';
+        saveWallpaperPrefs();
+      }
+      applyWallpaper();
+      if (rerender) rerender('wallpaper');
+    }));
   }
 
   function bindBoardPrefsSettings(box) {
