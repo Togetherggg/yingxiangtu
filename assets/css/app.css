@@ -950,3 +950,60 @@ body { -webkit-tap-highlight-color: transparent; }
   .brand-mark { width: 36px; height: 36px; border-radius: 11px; }
   .brand-text b { font-size: 14px; }
 }
+
+/* ---------------------------------------------------------------- 生活参考 */
+.life-tabs { display: flex; gap: 5px; padding: 4px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); margin-bottom: 16px; }
+.life-tabs button { flex: 1 1 0; min-width: 0; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .18s, color .18s, box-shadow .18s; }
+.life-tabs button:hover { color: var(--text); background: var(--panel-2); }
+.life-tabs button.is-active { color: var(--text); background: var(--card-2); box-shadow: var(--shadow-sm); }
+.life-body { min-height: 260px; }
+.life-loading { padding: 28px 0; text-align: center; color: var(--text-3); font-size: 13px; }
+.life-note { font-size: 11px; color: var(--text-3); line-height: 1.7; margin-top: 12px; }
+
+.cal-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.cal-top b { font-size: 15px; letter-spacing: .02em; }
+.cal-nav { display: flex; gap: 6px; }
+.cal-nav button { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel); color: var(--text-2); cursor: pointer; font-size: 17px; line-height: 1; }
+.cal-nav button:hover { color: var(--text); background: var(--panel-2); }
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
+.cal-week span { text-align: center; font-size: 11px; color: var(--text-3); padding: 3px 0; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-cell { position: relative; min-height: 40px; border: 1px solid transparent; border-radius: 10px; background: var(--panel); color: var(--text-2); font-size: 12.5px; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.cal-cell.is-muted { opacity: .3; }
+.cal-cell.is-weekend { color: var(--warn); }
+.cal-cell.is-today { background: var(--grad); color: #fff; font-weight: 700; box-shadow: 0 8px 18px -10px rgba(109,76,255,.9); }
+.cal-today-line { margin-top: 12px; font-size: 12px; color: var(--text-2); }
+
+.weather-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.weather-top b { font-size: 15px; }
+.weather-city { height: 34px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 0 10px; font-size: 12.5px; outline: none; }
+.weather-city:focus { border-color: var(--accent); }
+.weather-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+.weather-day { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 9px 5px; text-align: center; min-width: 0; }
+.weather-day.is-today { border-color: var(--accent); background: rgba(139,92,246,.1); }
+.weather-day .w-date { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.weather-day .w-emoji { font-size: 21px; line-height: 1.45; }
+.weather-day .w-desc { font-size: 10.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.weather-day .w-max { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 2px; }
+.weather-day .w-min { font-size: 11px; color: var(--text-3); }
+.weather-day .w-rain { font-size: 10px; color: var(--accent-2); margin-top: 3px; white-space: nowrap; }
+.weather-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; font-size: 11px; color: var(--text-3); }
+
+.fs-warn { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border: 1px solid rgba(251,191,36,.25); border-radius: 11px; background: rgba(251,191,36,.07); color: var(--text-2); font-size: 11.5px; line-height: 1.7; margin-bottom: 12px; }
+.fs-warn .ico { flex: 0 0 auto; width: 15px; height: 15px; color: var(--warn); margin-top: 1px; }
+.fs-list { display: flex; flex-direction: column; gap: 7px; }
+.fs-item { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 0 12px; }
+.fs-item summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 11px 0; font-size: 13px; font-weight: 650; color: var(--text); }
+.fs-item summary::-webkit-details-marker { display: none; }
+.fs-item summary::before { content: '＋'; color: var(--accent-2); font-weight: 700; width: 13px; text-align: center; }
+.fs-item[open] summary::before { content: '－'; }
+.fs-item .fs-text { padding: 0 0 12px 21px; font-size: 12px; line-height: 1.85; color: var(--text-2); }
+.fs-item .fs-text p { margin: 0 0 6px; }
+.fs-item .fs-text p:last-child { margin-bottom: 0; }
+
+@media (max-width: 720px) {
+  .weather-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .weather-day { padding: 10px 8px; }
+  .cal-cell { min-height: 36px; }
+  .life-tabs button { font-size: 12px; }
+}
