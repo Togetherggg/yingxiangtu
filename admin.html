@@ -105,6 +105,25 @@
   .adm-link-sub { display: block; font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
   .adm-list-head { display: flex; gap: 8px; margin-bottom: 10px; }
   .adm-list-head .input { flex: 1 1 auto; }
+  .adm-item[draggable="true"] { cursor: grab; }
+  .adm-item.is-dragging { opacity: .45; }
+  .adm-item.is-drag-over {
+    border-color: var(--accent); background: rgba(139, 92, 246, .14);
+    box-shadow: 0 0 0 1px var(--accent) inset;
+  }
+  .adm-mask {
+    position: fixed; inset: 0; z-index: 90; display: flex; align-items: center;
+    justify-content: center; padding: 20px; background: rgba(0, 0, 0, .62);
+    backdrop-filter: blur(4px);
+  }
+  .adm-mask[hidden] { display: none !important; }
+  .adm-dialog {
+    width: min(420px, 100%); background: var(--card); border: 1px solid var(--line);
+    border-radius: 18px; padding: 20px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.75);
+  }
+  .adm-dialog h3 { font-size: 16px; margin-bottom: 10px; }
+  .adm-dialog p { font-size: 13px; color: var(--text-2); line-height: 1.7; margin-bottom: 18px; }
+  .adm-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; }
   @media (max-width: 880px) {
     .adm-grid { grid-template-columns: 1fr; }
     .adm-top { padding: 12px 14px; }
@@ -224,6 +243,17 @@
   <button class="btn btn-primary" id="saveBtn" disabled>保存并发布</button>
 </div>
 
+<div class="adm-mask" id="moveMask" hidden>
+  <div class="adm-dialog" role="dialog" aria-modal="true" aria-labelledby="moveTitle">
+    <h3 id="moveTitle">移动链接</h3>
+    <p id="moveText"></p>
+    <div class="adm-dialog-actions">
+      <button class="btn" type="button" id="moveCancel">取消</button>
+      <button class="btn btn-primary" type="button" id="moveOk">确认移动</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   'use strict';
@@ -320,10 +350,14 @@
     const catList = $('#catList');
     catList.innerHTML = sortedCats().map((c) => {
       const n = lib.links.filter((l) => l.categoryId === c.id).length;
-      return '<div class="adm-item" style="--c:' + esc(c.color) + '">' +
-        '<i class="dot"></i><span class="name">' + esc(c.name) + '</span>' +
+      const sys = !!c.system;
+      return '<div class="adm-item" data-cat="' + esc(c.id) + '" style="--c:' + esc(c.color) + '">' +
+        '<i class="dot"></i><span class="name">' + esc(c.name) + (sys ? ' <span class="count">系统</span>' : '') + '</span>' +
         '<span class="count">' + n + ' 条</span>' +
-        '<button class="adm-del" type="button" data-delcat="' + esc(c.id) + '">删除</button></div>';
+        (sys
+          ? '<button class="adm-del" type="button" data-filter-uncat="1">查看</button>'
+          : '<button class="adm-del" type="button" data-delcat="' + esc(c.id) + '">删除</button>') +
+        '</div>';
     }).join('') || '<div class="adm-empty">还没有风格，先新建一个</div>';
 
     const sel = $('#addCat');
@@ -342,21 +376,24 @@
     cats.forEach((c, i) => { order[c.id] = i; });
     let links = lib.links.slice();
     if (q) {
-      links = links.filter((l) => ([l.title, l.url, l.note, siteOf(l), catName(l.categoryId)].join(' ').toLowerCase().indexOf(q) >= 0));
+      links = links.filter((l) => ([l.title, l.url, l.note, l.pendingStyle, siteOf(l), catName(l.categoryId)].join(' ').toLowerCase().indexOf(q) >= 0));
     }
     links.sort((a, b) => (order[a.categoryId] || 0) - (order[b.categoryId] || 0) || (a.order || 0) - (b.order || 0));
     $('#linkCount').textContent = links.length + ' / ' + lib.links.length + ' 条';
-    $('#linkList').innerHTML = links.map((l) => (
-      '<div class="adm-item" style="--c:' + esc(catColor(l.categoryId)) + '">' +
+    $('#linkList').innerHTML = links.map((l) => {
+      const isUncat = l.categoryId === 'uncategorized';
+      const origin = l.pendingStyle ? ' · 原风格：' + l.pendingStyle : '';
+      return '<div class="adm-item" data-link="' + esc(l.id) + '"' + (isUncat ? ' draggable="true"' : '') + ' style="--c:' + esc(catColor(l.categoryId)) + '">' +
         '<i class="dot"></i>' +
         '<div style="flex:1 1 auto;min-width:0">' +
           '<span class="adm-link-title">' + esc(l.title || '未命名') + '</span>' +
-          '<span class="adm-link-sub">' + esc(catName(l.categoryId)) + ' · ' + esc(siteOf(l)) + ' · ' + esc(l.url) + '</span>' +
+          '<span class="adm-link-sub">' + esc(catName(l.categoryId)) + ' · ' + esc(siteOf(l)) + ' · ' + esc(l.url) + esc(origin) + '</span>' +
         '</div>' +
+        (isUncat ? '<span class="meta" style="color:var(--warn)">可拖动</span>' : '') +
         '<a class="meta" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent-2);text-decoration:none">打开</a>' +
         '<button class="adm-del" type="button" data-del="' + esc(l.id) + '">删除</button>' +
-      '</div>'
-    )).join('') || '<div class="adm-empty">' + (q ? '没有匹配的链接' : '还没有链接，先添加一条') + '</div>';
+      '</div>';
+    }).join('') || '<div class="adm-empty">' + (q ? '没有匹配的链接' : '还没有链接，先添加一条') + '</div>';
   }
 
   function showLogin(msg) {
@@ -575,6 +612,7 @@
     e.preventDefault();
     const name = $('#catName').value.trim();
     if (!name) { setStatus('请填写风格名称', 'warn'); return; }
+    if (name === '待分类') { setStatus('「待分类」是系统分类，不能新建同名风格', 'warn'); return; }
     if (lib.categories.some((c) => c.name === name)) { setStatus('已有同名风格', 'warn'); return; }
     const maxOrder = lib.categories.reduce((m, c) => Math.max(m, c.order || 0), 0);
     lib.categories.push({
@@ -600,20 +638,61 @@
     setStatus('已删除，记得保存发布', 'ok');
   }
 
+  function ensureUncat() {
+    let c = lib.categories.filter((x) => x.id === 'uncategorized')[0];
+    if (!c) {
+      c = { id: 'uncategorized', name: '待分类', color: '#8B95A7', order: 999, system: true };
+      lib.categories.push(c);
+    }
+    return c;
+  }
+
   function delCat(id) {
     const c = lib.categories.filter((x) => x.id === id)[0];
     if (!c) return;
+    if (c.system || id === 'uncategorized') { setStatus('「待分类」是系统分类，不能删除', 'warn'); return; }
     const n = lib.links.filter((l) => l.categoryId === id).length;
-    if (lib.categories.length <= 1) { setStatus('至少保留一个风格', 'warn'); return; }
-    if (!confirm('删除风格「' + c.name + '」' + (n ? '，同时删除它下面的 ' + n + ' 条链接？' : '？'))) return;
+    if (lib.categories.filter((x) => !x.system).length <= 1) { setStatus('至少保留一个风格', 'warn'); return; }
+    if (!confirm('删除风格「' + c.name + '」？' + (n ? '\n\n里面的 ' + n + ' 条链接会移到「待分类」，不会删除。' : '\n\n这个风格下没有链接。'))) return;
+    ensureUncat();
     lib.links.filter((l) => l.categoryId === id).forEach((l) => {
-      if (lib.tombstones.indexOf(l.url) < 0) lib.tombstones.push(l.url);
+      l.categoryId = 'uncategorized';
+      l.pendingStyle = c.name;
     });
-    lib.links = lib.links.filter((l) => l.categoryId !== id);
     lib.categories = lib.categories.filter((x) => x.id !== id);
     markDirty();
     render();
-    setStatus('已删除风格，记得保存发布', 'ok');
+    setStatus('已删除风格「' + c.name + '」；' + n + ' 条链接已移到待分类', 'ok');
+  }
+
+  let pendingMove = null;
+
+  function showMoveConfirm(linkId, catId) {
+    const l = lib.links.filter((x) => x.id === linkId)[0];
+    const c = lib.categories.filter((x) => x.id === catId)[0];
+    if (!l || !c || c.id === 'uncategorized') return;
+    pendingMove = { linkId: linkId, catId: catId };
+    $('#moveText').textContent = '把「' + (l.title || l.url) + '」从「待分类」移到风格「' + c.name + '」？';
+    $('#moveMask').hidden = false;
+  }
+
+  function closeMoveConfirm() {
+    pendingMove = null;
+    $('#moveMask').hidden = true;
+  }
+
+  function confirmMove() {
+    if (!pendingMove) return;
+    const l = lib.links.filter((x) => x.id === pendingMove.linkId)[0];
+    const c = lib.categories.filter((x) => x.id === pendingMove.catId)[0];
+    if (l && c) {
+      l.categoryId = c.id;
+      delete l.pendingStyle;
+      markDirty();
+      render();
+      setStatus('已移到「' + c.name + '」，记得保存发布', 'ok');
+    }
+    closeMoveConfirm();
   }
 
   function reloadData() {
@@ -670,6 +749,8 @@
     $('#addCatForm').addEventListener('submit', addCat);
     $('#filterInput').addEventListener('input', renderLinks);
     $('#catList').addEventListener('click', (e) => {
+      const f = e.target.closest('[data-filter-uncat]');
+      if (f) { $('#filterInput').value = '待分类'; renderLinks(); return; }
       const b = e.target.closest('[data-delcat]');
       if (b) delCat(b.dataset.delcat);
     });
@@ -677,6 +758,41 @@
       const b = e.target.closest('[data-del]');
       if (b) delLink(b.dataset.del);
     });
+    $('#linkList').addEventListener('dragstart', (e) => {
+      const row = e.target.closest('[data-link][draggable="true"]');
+      if (!row) return;
+      e.dataTransfer.setData('text/plain', row.dataset.link);
+      e.dataTransfer.effectAllowed = 'move';
+      row.classList.add('is-dragging');
+    });
+    $('#linkList').addEventListener('dragend', (e) => {
+      const row = e.target.closest('[data-link]');
+      if (row) row.classList.remove('is-dragging');
+      $$('#catList [data-cat]').forEach((x) => x.classList.remove('is-drag-over'));
+    });
+    $('#catList').addEventListener('dragover', (e) => {
+      const row = e.target.closest('[data-cat]');
+      if (!row || row.dataset.cat === 'uncategorized') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      $$('#catList [data-cat]').forEach((x) => x.classList.toggle('is-drag-over', x === row));
+    });
+    $('#catList').addEventListener('dragleave', (e) => {
+      const row = e.target.closest('[data-cat]');
+      if (row) row.classList.remove('is-drag-over');
+    });
+    $('#catList').addEventListener('drop', (e) => {
+      const row = e.target.closest('[data-cat]');
+      if (!row || row.dataset.cat === 'uncategorized') return;
+      e.preventDefault();
+      const linkId = e.dataTransfer.getData('text/plain');
+      $$('#catList [data-cat]').forEach((x) => x.classList.remove('is-drag-over'));
+      if (linkId) showMoveConfirm(linkId, row.dataset.cat);
+    });
+    $('#moveOk').addEventListener('click', confirmMove);
+    $('#moveCancel').addEventListener('click', closeMoveConfirm);
+    $('#moveMask').addEventListener('click', (e) => { if (e.target.id === 'moveMask') closeMoveConfirm(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#moveMask').hidden) closeMoveConfirm(); });
     window.addEventListener('beforeunload', (e) => {
       if (dirty) { e.preventDefault(); e.returnValue = ''; }
     });
