@@ -74,6 +74,16 @@
     background: var(--c); padding: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
   }
   .adm-sw button.is-active { border-color: var(--text); }
+  .adm-color-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .adm-color-picker {
+    width: 40px; height: 34px; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--line); background: var(--panel); display: inline-flex;
+    align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto;
+  }
+  .adm-color-picker input[type=color] {
+    width: 58px; height: 58px; border: 0; padding: 0; background: none;
+    transform: scale(1.35); cursor: pointer;
+  }
   .adm-savebar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     display: flex; align-items: center; gap: 10px; padding: 12px 22px;
@@ -166,23 +176,24 @@
         </div>
 
         <div class="adm-card">
-          <h2>新建风格</h2>
+          <h2>风格管理 <span class="hint">可新增 / 删除；删除会同时删除其下链接</span></h2>
           <form id="addCatForm">
             <div class="adm-field">
-              <label for="catName">风格名称 *</label>
+              <label for="catName">新增风格名称 *</label>
               <input class="input" id="catName" type="text" maxlength="12" placeholder="例如：法式复古、日式原木…" autocomplete="off">
             </div>
             <div class="adm-field">
-              <label>标记颜色</label>
-              <div class="adm-sw" id="catColors"></div>
+              <label>标记颜色 <span class="hint">点色块，或用右侧色盘自定义</span></label>
+              <div class="adm-color-row">
+                <div class="adm-sw" id="catColors"></div>
+                <label class="adm-color-picker" title="打开色盘自定义颜色">
+                  <input type="color" id="catColorInput" value="#C9A227" aria-label="自定义颜色">
+                </label>
+              </div>
             </div>
-            <button class="btn" type="submit" style="width:100%">新建风格</button>
+            <button class="btn" type="submit" style="width:100%">添加风格</button>
           </form>
-        </div>
-
-        <div class="adm-card">
-          <h2>风格管理 <span class="hint">删除风格会同时删除其下链接</span></h2>
-          <div class="adm-list" id="catList"></div>
+          <div class="adm-list" id="catList" style="margin-top:12px"></div>
         </div>
       </div>
 
@@ -605,12 +616,19 @@
 
   function initColors() {
     const box = $('#catColors');
+    const input = $('#catColorInput');
     box.innerHTML = PALETTE.map((c) => '<button type="button" data-color="' + c + '" style="--c:' + c + '" class="' + (c === pickColor ? 'is-active' : '') + '" aria-label="' + c + '"></button>').join('');
+    input.value = pickColor;
     box.addEventListener('click', (e) => {
       const b = e.target.closest('[data-color]');
       if (!b) return;
       pickColor = b.dataset.color;
+      input.value = pickColor;
       $$('[data-color]', box).forEach((x) => x.classList.toggle('is-active', x === b));
+    });
+    input.addEventListener('input', () => {
+      pickColor = input.value;
+      $$('[data-color]', box).forEach((x) => x.classList.remove('is-active'));
     });
   }
 
