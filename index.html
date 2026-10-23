@@ -16,7 +16,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/app.css?v=20261024">
 </head>
 <body>
 
@@ -49,6 +49,7 @@
   <symbol id="i-window" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></symbol>
   <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 8.5 4.2L12 11.4 3.5 7.2Z"/><path d="m3.5 12 8.5 4.2 8.5-4.2"/><path d="m3.5 16.6 8.5 4.2 8.5-4.2"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".8" style="fill:currentColor;stroke:none"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v4M16 3v4"/><path d="M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="3"/><path d="M10.5 5.5h3"/><circle cx="12" cy="18" r=".7" style="fill:currentColor;stroke:none"/></symbol>
   <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM19.5 19.5h1.5M14 20.5h2.5M20.5 14v2.5"/></symbol>
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 3.8 5.6 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z"/></symbol>
@@ -75,6 +76,9 @@
     </div>
 
     <div class="top-actions">
+      <button class="icon-btn" id="lifeBtn" type="button" title="日历 / 天气 / 风水参考" aria-label="日历 / 天气 / 风水参考">
+        <svg class="ico" aria-hidden="true"><use href="#i-calendar"></use></svg>
+      </button>
       <button class="icon-btn" id="phoneBtn" type="button" title="手机 / 微信访问" aria-label="手机 / 微信访问">
         <svg class="ico" aria-hidden="true"><use href="#i-phone"></use></svg>
       </button>
@@ -170,6 +174,6 @@
 
 <script>window.__STATIC_LIBRARY_URL__='data/library.json';</script>
 <script src="assets/js/qrcode.min.js"></script>
-<script src="assets/js/app.js?v=20261023"></script>
+<script src="assets/js/app.js?v=20261024"></script>
 </body>
 </html>
