@@ -82,6 +82,14 @@
   function sortedCategories() {
     return state.lib.categories.slice().sort((a, b) => (a.order || 0) - (b.order || 0) || String(a.name).localeCompare(String(b.name), 'zh'));
   }
+  function ensureUncat() {
+    let c = state.lib.categories.filter((x) => x.id === 'uncategorized')[0];
+    if (!c) {
+      c = { id: 'uncategorized', name: '待分类', color: '#8B95A7', order: 999, system: true };
+      state.lib.categories.push(c);
+    }
+    return c;
+  }
 
   function normalizeLibrary(raw, opts) {
     const lib = {
@@ -109,7 +117,8 @@
         id: id,
         name: name.slice(0, 24),
         color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : PALETTE[lib.categories.length % PALETTE.length],
-        order: Number.isFinite(c.order) ? c.order : lib.categories.length
+        order: Number.isFinite(c.order) ? c.order : lib.categories.length,
+        system: !!c.system
       });
     });
     if (!lib.categories.length) {
@@ -148,7 +157,8 @@
         status: ['ok', 'warn', 'fail', 'unknown'].indexOf(l.status) >= 0 ? l.status : 'unknown',
         statusCheckedAt: typeof l.statusCheckedAt === 'string' ? l.statusCheckedAt : '',
         addedAt: typeof l.addedAt === 'string' ? l.addedAt : new Date().toISOString(),
-        order: Number.isFinite(l.order) ? l.order : i
+        order: Number.isFinite(l.order) ? l.order : i,
+        pendingStyle: typeof l.pendingStyle === 'string' ? l.pendingStyle.slice(0, 40) : ''
       });
     });
     if (!lib.buildInfo && SEED && SEED.buildInfo) lib.buildInfo = SEED.buildInfo;
@@ -463,7 +473,7 @@
     const list = $('#catList');
     list.innerHTML = sortedCategories().map((c) => {
       const n = lib.links.filter((l) => l.categoryId === c.id).length;
-      const kebab = state.readOnly ? '' :
+      const kebab = (state.readOnly || c.system) ? '' :
         '<button class="cat-kebab" type="button" data-kebab="' + esc(c.id) + '" aria-label="管理风格 ' + esc(c.name) + '">' + ico('more') + '</button>';
       return '<div class="cat-item' + (state.scope === c.id ? ' is-active' : '') + '" data-scope="' + esc(c.id) + '" style="--c:' + esc(c.color) + '" role="listitem" tabindex="0">' +
         '<i class="cat-dot"></i>' +
@@ -532,10 +542,11 @@
       const cover = own.filter((l) => l.thumb)[0];
       const sites = [];
       own.forEach((l) => { const s = siteOf(l); if (sites.indexOf(s) < 0) sites.push(s); });
-      const meta = !own.length ? '暂无链接，点击添加'
+      const meta = c.system && !own.length ? '删除风格后，链接会集中到这里'
+        : !own.length ? '暂无链接，点击添加'
         : sites.length <= 2 ? sites.join(' · ')
         : sites[0] + ' 等 ' + sites.length + ' 个来源';
-      return '<button class="style-tile" type="button" data-scope="' + esc(c.id) + '" style="--c:' + esc(c.color) + ';--d:' + Math.min(i++, 12) * 35 + 'ms" aria-label="查看 ' + esc(c.name) + '（' + own.length + ' 条）">' +
+      return '<button class="style-tile' + (c.system ? ' is-uncat' : '') + '" type="button" data-scope="' + esc(c.id) + '" style="--c:' + esc(c.color) + ';--d:' + Math.min(i++, 12) * 35 + 'ms" aria-label="查看 ' + esc(c.name) + '（' + own.length + ' 条）">' +
         '<span class="tile-media">' +
           '<span class="tile-fallback">' + esc(c.name.slice(0, 2)) + '</span>' +
           (cover ? '<img src="' + esc(cover.thumb) + '" alt="" loading="lazy" decoding="async">' : '') +
@@ -977,13 +988,13 @@
           '<label class="field-label">标记颜色</label>' +
           '<div class="swatches" id="catColors">' + swatches + '</div>' +
         '</div>' +
-        (isEdit ? '<div class="form-tip is-warn">' + ico('alert') + '<span>删除风格会同时删除其下的 ' + state.lib.links.filter((l) => l.categoryId === curr.id).length + ' 条链接。</span></div>' : '');
+        (isEdit && !curr.system ? '<div class="form-tip is-warn">' + ico('alert') + '<span>删除后，其下的 ' + state.lib.links.filter((l) => l.categoryId === curr.id).length + ' 条链接会移到「待分类」，不会删除。</span></div>' : '');
       const modal = openModal({
         title: isEdit ? '编辑风格' : '新建风格',
         desc: isEdit ? '修改名称或标记颜色。' : '新建一种装修风格，之后添加链接时即可选择。',
         size: 'sm',
         body: body,
-        footer: (isEdit ? '<button class="btn btn-ghost" type="button" id="catDel" style="margin-right:auto;color:#ff8ea0">删除风格</button>' : '') +
+        footer: (isEdit && !curr.system ? '<button class="btn btn-ghost" type="button" id="catDel" style="margin-right:auto;color:#ff8ea0">删除风格</button>' : '') +
           '<button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="catSave">保存</button>',
         onClose: () => resolve(null)
       });
@@ -1003,6 +1014,7 @@
       $('#catSave', modal.el).addEventListener('click', async () => {
         const name = nameEl.value.trim();
         if (!name) { msg.textContent = '请填写风格名称'; msg.classList.add('is-show'); nameEl.classList.add('is-error'); return; }
+        if (name === '待分类') { msg.textContent = '「待分类」是系统分类，请换一个名称'; msg.classList.add('is-show'); nameEl.classList.add('is-error'); return; }
         if (name.length > 12) { msg.textContent = '名称建议不超过 12 个字'; }
         const dup = state.lib.categories.filter((c) => c.name === name && (!isEdit || c.id !== curr.id))[0];
         if (dup) { msg.textContent = '已存在同名风格'; msg.classList.add('is-show'); nameEl.classList.add('is-error'); return; }
@@ -1025,25 +1037,27 @@
       const delBtn = $('#catDel', modal.el);
       if (delBtn) {
         delBtn.addEventListener('click', async () => {
-          if (state.lib.categories.length <= 1) { toast('至少保留一个风格分类', { type: 'warn' }); return; }
+          if (curr.system) { toast('「待分类」是系统分类，不能删除', { type: 'warn' }); return; }
+          if (state.lib.categories.filter((c) => !c.system).length <= 1) { toast('至少保留一个风格分类', { type: 'warn' }); return; }
           const n = state.lib.links.filter((l) => l.categoryId === curr.id).length;
           const yes = await confirmDialog({
             title: '删除风格「' + curr.name + '」？',
-            desc: n ? '该风格下的 ' + n + ' 条效果图会一并删除。' : '该风格下暂无效果图。',
-            confirmText: '删除',
+            desc: n ? '删除后，里面的 ' + n + ' 条效果图会移到「待分类」，不会删除。' : '该风格下暂无效果图。',
+            confirmText: '删除风格',
             danger: true
           });
           if (!yes) return;
+          ensureUncat();
           state.lib.links.filter((l) => l.categoryId === curr.id).forEach((l) => {
-            if (state.lib.tombstones.indexOf(l.url) < 0) state.lib.tombstones.push(l.url);
+            l.categoryId = 'uncategorized';
+            l.pendingStyle = curr.name;
           });
-          state.lib.links = state.lib.links.filter((l) => l.categoryId !== curr.id);
           state.lib.categories = state.lib.categories.filter((c) => c.id !== curr.id);
           if (state.scope === curr.id) state.scope = 'home';
           await saveLibrary();
           modal.close(true);
           renderAll();
-          toast('风格已删除');
+          toast('风格已删除；' + n + ' 条链接已移到待分类');
           resolve(null);
         });
       }
@@ -1054,27 +1068,29 @@
     if (state.readOnly) return;
     const cat = catOf(catId);
     if (!cat) return;
+    if (cat.system) { toast('「待分类」是系统分类，不能编辑或删除', { type: 'warn' }); return; }
     openMenu(anchor, [
       { icon: 'edit', label: '编辑风格', onClick: () => openCategoryForm(cat) },
       { icon: 'trash', label: '删除风格', danger: true, onClick: async () => {
-          if (state.lib.categories.length <= 1) { toast('至少保留一个风格分类', { type: 'warn' }); return; }
+          if (state.lib.categories.filter((c) => !c.system).length <= 1) { toast('至少保留一个风格分类', { type: 'warn' }); return; }
           const n = state.lib.links.filter((l) => l.categoryId === catId).length;
           const yes = await confirmDialog({
             title: '删除风格「' + cat.name + '」？',
-            desc: n ? '该风格下的 ' + n + ' 条效果图会一并删除。' : '该风格下暂无效果图。',
-            confirmText: '删除',
+            desc: n ? '删除后，里面的 ' + n + ' 条效果图会移到「待分类」，不会删除。' : '该风格下暂无效果图。',
+            confirmText: '删除风格',
             danger: true
           });
           if (!yes) return;
+          ensureUncat();
           state.lib.links.filter((l) => l.categoryId === catId).forEach((l) => {
-            if (state.lib.tombstones.indexOf(l.url) < 0) state.lib.tombstones.push(l.url);
+            l.categoryId = 'uncategorized';
+            l.pendingStyle = cat.name;
           });
-          state.lib.links = state.lib.links.filter((l) => l.categoryId !== catId);
           state.lib.categories = state.lib.categories.filter((c) => c.id !== catId);
           if (state.scope === catId) state.scope = 'home';
           await saveLibrary();
           renderAll();
-          toast('风格已删除');
+          toast('风格已删除；' + n + ' 条链接已移到待分类');
         } }
     ]);
   }
@@ -1823,9 +1839,194 @@
     else if (act === 'del' && !state.readOnly) actDelete(link);
   }
 
+  const LIFE_CITIES = [
+    { name: '丽水', lat: 28.45, lon: 119.92 },
+    { name: '杭州', lat: 30.27, lon: 120.16 },
+    { name: '上海', lat: 31.23, lon: 121.47 },
+    { name: '北京', lat: 39.90, lon: 116.41 },
+    { name: '广州', lat: 23.13, lon: 113.26 },
+    { name: '深圳', lat: 22.54, lon: 114.06 },
+    { name: '成都', lat: 30.57, lon: 104.07 },
+    { name: '武汉', lat: 30.59, lon: 114.31 },
+    { name: '南京', lat: 32.06, lon: 118.80 },
+    { name: '西安', lat: 34.34, lon: 108.94 },
+    { name: '重庆', lat: 29.56, lon: 106.55 },
+    { name: '苏州', lat: 31.30, lon: 120.58 },
+    { name: '青岛', lat: 36.07, lon: 120.38 },
+    { name: '厦门', lat: 24.48, lon: 118.09 }
+  ];
+  const LIFE_WMO = {
+    0: ['晴', '☀️'], 1: ['少云', '🌤️'], 2: ['多云', '⛅'], 3: ['阴', '☁️'],
+    45: ['雾', '🌫️'], 48: ['雾凇', '🌫️'],
+    51: ['毛毛雨', '🌦️'], 53: ['毛毛雨', '🌦️'], 55: ['毛毛雨', '🌦️'],
+    56: ['冻雨', '🌧️'], 57: ['冻雨', '🌧️'],
+    61: ['小雨', '🌦️'], 63: ['中雨', '🌧️'], 65: ['大雨', '🌧️'],
+    66: ['冻雨', '🌧️'], 67: ['冻雨', '🌧️'],
+    71: ['小雪', '🌨️'], 73: ['中雪', '🌨️'], 75: ['大雪', '❄️'], 77: ['雪粒', '🌨️'],
+    80: ['阵雨', '🌦️'], 81: ['阵雨', '🌧️'], 82: ['强阵雨', '⛈️'],
+    85: ['阵雪', '🌨️'], 86: ['强阵雪', '❄️'],
+    95: ['雷雨', '⛈️'], 96: ['雷雨冰雹', '⛈️'], 99: ['雷雨冰雹', '⛈️']
+  };
+  let lifeCalendarState = null;
+  let lifeWeatherCity = '丽水';
+  try { lifeWeatherCity = localStorage.getItem('yxg.life.city') || '丽水'; } catch (e) {}
+
+  function lifeWeatherInfo(code) {
+    return LIFE_WMO[Number(code)] || ['未知', '🌡️'];
+  }
+
+  function renderLifeCalendar(box) {
+    const now = new Date();
+    if (!lifeCalendarState) lifeCalendarState = { y: now.getFullYear(), m: now.getMonth() };
+    const weekNames = ['一', '二', '三', '四', '五', '六', '日'];
+    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    function draw() {
+      const y = lifeCalendarState.y;
+      const m = lifeCalendarState.m;
+      const first = new Date(y, m, 1);
+      const start = (first.getDay() + 6) % 7;
+      const days = new Date(y, m + 1, 0).getDate();
+      const prevDays = new Date(y, m, 0).getDate();
+      let cells = '';
+      for (let i = 0; i < 42; i++) {
+        const num = i - start + 1;
+        let d, cy = y, cm = m, muted = false;
+        if (num < 1) { d = prevDays + num; muted = true; cm = m - 1; if (cm < 0) { cm = 11; cy--; } }
+        else if (num > days) { d = num - days; muted = true; cm = m + 1; if (cm > 11) { cm = 0; cy++; } }
+        else d = num;
+        const dt = new Date(cy, cm, d);
+        const isToday = dt.toDateString() === now.toDateString();
+        const dow = dt.getDay();
+        cells += '<div class="cal-cell' + (muted ? ' is-muted' : '') + ((dow === 0 || dow === 6) ? ' is-weekend' : '') + (isToday ? ' is-today' : '') + '">' + d + '</div>';
+      }
+      box.innerHTML = '<div class="cal-top"><b>' + y + ' 年 ' + (m + 1) + ' 月</b>' +
+        '<div class="cal-nav"><button type="button" data-cal="-1" aria-label="上个月">‹</button>' +
+        '<button type="button" data-cal="today" aria-label="回到今天">今</button>' +
+        '<button type="button" data-cal="1" aria-label="下个月">›</button></div></div>' +
+        '<div class="cal-week">' + weekNames.map((w) => '<span>' + w + '</span>').join('') + '</div>' +
+        '<div class="cal-grid">' + cells + '</div>' +
+        '<div class="cal-today-line">今天：' + now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 星期' + dayNames[now.getDay()] + '</div>';
+      $$('[data-cal]', box).forEach((btn) => btn.addEventListener('click', () => {
+        const v = btn.dataset.cal;
+        if (v === 'today') {
+          const t = new Date();
+          lifeCalendarState = { y: t.getFullYear(), m: t.getMonth() };
+        } else {
+          lifeCalendarState.m += Number(v);
+          if (lifeCalendarState.m < 0) { lifeCalendarState.m = 11; lifeCalendarState.y--; }
+          if (lifeCalendarState.m > 11) { lifeCalendarState.m = 0; lifeCalendarState.y++; }
+        }
+        draw();
+      }));
+    }
+    draw();
+  }
+
+  async function renderLifeWeather(box) {
+    if (!LIFE_CITIES.some((c) => c.name === lifeWeatherCity)) lifeWeatherCity = '丽水';
+    box.innerHTML = '<div class="weather-top"><b>国内天气预报</b><select class="weather-city" id="lifeCity">' +
+      LIFE_CITIES.map((c) => '<option value="' + c.name + '">' + c.name + '</option>').join('') +
+      '</select></div><div id="lifeWeatherBody"><div class="life-loading">正在获取天气…</div></div>' +
+      '<div class="life-note">数据来源：Open-Meteo 公开天气接口（未来 7 天），仅供参考；出门前请以当地气象台预报为准。</div>';
+    const sel = $('#lifeCity', box);
+    sel.value = lifeWeatherCity;
+    let seq = 0;
+    async function load() {
+      const city = LIFE_CITIES.filter((c) => c.name === lifeWeatherCity)[0] || LIFE_CITIES[0];
+      const my = ++seq;
+      const target = $('#lifeWeatherBody', box);
+      target.innerHTML = '<div class="life-loading">正在获取 ' + esc(city.name) + ' 的天气…</div>';
+      try {
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + city.lat + '&longitude=' + city.lon +
+          '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FShanghai&forecast_days=7';
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (my !== seq) return;
+        const daily = data.daily || {};
+        const times = daily.time || [];
+        const codes = daily.weather_code || [];
+        const maxs = daily.temperature_2m_max || [];
+        const mins = daily.temperature_2m_min || [];
+        const rains = daily.precipitation_probability_max || [];
+        const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        let html = '<div class="weather-grid">';
+        times.forEach((t, i) => {
+          const dt = new Date(t + 'T12:00:00');
+          const info = lifeWeatherInfo(codes[i]);
+          const label = i === 0 ? '今天' : week[dt.getDay()];
+          const rain = rains[i] == null ? '—' : rains[i] + '%';
+          html += '<div class="weather-day' + (i === 0 ? ' is-today' : '') + '">' +
+            '<div class="w-date">' + label + ' ' + (dt.getMonth() + 1) + '/' + dt.getDate() + '</div>' +
+            '<div class="w-emoji">' + info[1] + '</div>' +
+            '<div class="w-desc">' + info[0] + '</div>' +
+            '<div class="w-max">' + Math.round(maxs[i]) + '°</div>' +
+            '<div class="w-min">' + Math.round(mins[i]) + '°</div>' +
+            '<div class="w-rain">降水 ' + rain + '</div>' +
+            '</div>';
+        });
+        html += '</div>';
+        target.innerHTML = html;
+      } catch (e) {
+        if (my !== seq) return;
+        target.innerHTML = '<div class="life-loading">天气服务暂时不可用，请稍后再试。</div>';
+      }
+    }
+    sel.addEventListener('change', () => {
+      lifeWeatherCity = sel.value;
+      try { localStorage.setItem('yxg.life.city', lifeWeatherCity); } catch (e) {}
+      load();
+    });
+    await load();
+  }
+
+  function renderLifeFengShui(box) {
+    const sections = [
+      ['先记住这几条', '<p>采光、通风、动线顺畅、收纳整洁，比任何“招财布局”都更重要。先保证住得舒服、安全，再谈民俗讲究。</p><p>不要为了所谓方位去拆改承重墙、燃气、排水或消防设施。</p>'],
+      ['玄关', '<p>玄关宜明亮、干净，鞋子收进有门的鞋柜，不堆杂物。灯光明亮柔和，进门不直视尖锐物或镜子。</p><p>传统说法讲“藏风聚气”，实际就是进门不要一眼看穿全屋、动线不要拥堵。</p>'],
+      ['客厅', '<p>沙发背后宜有实墙或稳固柜体，不要背对大门、走道。电视墙不宜过高过厚，避免压迫感。</p><p>茶几与沙发之间留出通行距离；采光面不要被高柜挡住。</p>'],
+      ['卧室', '<p>床头靠实墙，床头两侧留出通道；镜子不要正对床。灯光以暖色、可调光为宜，少放强干扰的电器。</p><p>卧室以安静、遮光、通风为优先，不必堆太多装饰。</p>'],
+      ['厨房', '<p>灶台与水槽之间留操作台面，避免“水火相冲”式的紧贴；油烟机排烟要顺畅，厨房门常关或加装隔断。</p><p>燃气、排烟、插座防水等安全规范优先于任何风水说法。</p>'],
+      ['卫生间', '<p>干湿分离、排风良好，门尽量常关；地面防滑、地漏通畅。传统上不建议卫生间门正对大门、床或餐桌。</p><p>潮湿区域少放电器和易霉物品。</p>'],
+      ['书房 / 工作区', '<p>座位背后有靠，视线不直冲门口；光线从侧前方来，避免屏幕反光。桌面少堆杂物，保持专注。</p>'],
+      ['阳台与绿植', '<p>阳台保持通透，不堆成杂物间；绿植适量，不遮挡采光和消防通道。带刺植物不要放在常走动的窄道。</p>'],
+      ['镜子、尖角与横梁', '<p>镜子不宜正对床、门或沙发久坐位置；家具尖角尽量避开主要动线。横梁下不宜长期久坐或久卧，可用吊顶或家具布局弱化。</p>'],
+      ['颜色与材质', '<p>大面积颜色以低饱和、耐看为主；木、石、布艺的质感比“五行颜色”更影响居住感受。深色可以点缀，但不要压住采光。</p>'],
+      ['2026 年怎么参考', '<p>流年方位、九宫飞星等说法流派很多，不建议据此大改房屋结构。可以把“年度方位”当作整理和清洁的提醒：重点打扫常年不动的角落，保持通风和明亮即可。</p>']
+    ];
+    box.innerHTML = '<div class="fs-warn">' + ico('alert') + '<span>以下为传统民俗与居住经验整理，仅供装修参考，不构成专业风水、结构、燃气或消防安全建议。采光、通风、消防、结构安全永远优先。</span></div>' +
+      '<div class="fs-list">' + sections.map((s, i) => '<details class="fs-item"' + (i === 0 ? ' open' : '') + '><summary>' + s[0] + '</summary><div class="fs-text">' + s[1] + '</div></details>').join('') + '</div>';
+  }
+
+  function openLifeModal() {
+    const body = '<div class="life-tabs" id="lifeTabs">' +
+      '<button type="button" data-life="calendar" class="is-active">日历</button>' +
+      '<button type="button" data-life="weather">天气</button>' +
+      '<button type="button" data-life="fengshui">风水参考</button></div>' +
+      '<div class="life-body" id="lifeBody"></div>';
+    const modal = openModal({
+      title: '生活参考',
+      desc: '日历 · 国内天气 · 风水（传统民俗参考）',
+      size: 'lg',
+      body: body,
+      footer: '<button class="btn" type="button" data-close>关闭</button>'
+    });
+    const tabs = $$('#lifeTabs button', modal.el);
+    const box = $('#lifeBody', modal.el);
+    function show(tab) {
+      tabs.forEach((b) => b.classList.toggle('is-active', b.dataset.life === tab));
+      if (tab === 'calendar') renderLifeCalendar(box);
+      else if (tab === 'weather') renderLifeWeather(box);
+      else renderLifeFengShui(box);
+    }
+    tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.life)));
+    show('calendar');
+  }
+
   function bindEvents() {
     $('#themeBtn').addEventListener('click', () => applyTheme(state.theme === 'dark' ? 'light' : 'dark'));
     $('#phoneBtn').addEventListener('click', openPhoneModal);
+    $('#lifeBtn').addEventListener('click', openLifeModal);
     $('#addBtn').addEventListener('click', () => openForm('add'));
     $('#brandBtn').addEventListener('click', (e) => {
       e.preventDefault();
