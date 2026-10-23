@@ -98,6 +98,7 @@
       categories: [],
       links: [],
       schedule: [],
+      board: { schedule: true, weather: true, calendar: true, fengshui: true },
       tombstones: [],
       buildInfo: null,
       seedVersion: (opts && opts.seedVersion) || 0
@@ -140,6 +141,11 @@
         note: String(e.note || '').slice(0, 160),
         done: !!e.done
       })).filter((e) => e.title).slice(0, 500);
+    }
+    if (raw.board && typeof raw.board === 'object') {
+      ['schedule', 'weather', 'calendar', 'fengshui'].forEach((k) => {
+        if (typeof raw.board[k] === 'boolean') lib.board[k] = raw.board[k];
+      });
     }
 
     const urlSeen = {};
@@ -614,25 +620,35 @@
     const now = new Date();
     const todayStr = localDateStr(now);
     const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    const upcoming = sortedSchedule().filter((e) => !e.done && e.date >= todayStr).slice(0, 4);
-    const eventsHtml = upcoming.length ? upcoming.map((e) => {
-      const color = ({ '量房': '#4FC3F7', '方案': '#8A7CFF', '施工': '#F2B8B5', '客户': '#5FD3B4', '其他': '#9AA7B8' })[e.type] || '#9AA7B8';
-      const isToday = e.date === todayStr;
-      return '<div class="db-event"><span class="db-ev-time">' + esc(e.time || '全天') + '</span>' +
-        '<span class="db-ev-main"><b>' + esc(e.title) + '</b><small>' + (isToday ? '今天' : scheduleDateLabel(e.date)) + (e.note ? ' · ' + esc(e.note) : '') + '</small></span>' +
-        '<span class="db-ev-type" style="color:' + color + ';border-color:' + color + '33;background:' + color + '12">' + esc(e.type) + '</span></div>';
-    }).join('') : '<div class="db-empty">还没有日程<br><span>在管理页「设计师日程」里添加</span></div>';
+    const cfg = Object.assign({ schedule: true, weather: true, calendar: true, fengshui: true }, state.lib.board || {});
+    const cards = [];
 
-    return '<section class="designer-board" aria-label="设计师工作台">' +
-      '<div class="db-card db-schedule"><div class="db-head"><div><span class="db-kicker">DESIGNER DESK</span><h3>设计师日程</h3></div><button class="db-link" type="button" id="boardScheduleAll">全部日程 →</button></div>' +
+    if (cfg.schedule) {
+      const upcoming = sortedSchedule().filter((e) => !e.done && e.date >= todayStr).slice(0, 4);
+      const eventsHtml = upcoming.length ? upcoming.map((e) => {
+        const color = ({ '量房': '#4FC3F7', '方案': '#8A7CFF', '施工': '#F2B8B5', '客户': '#5FD3B4', '其他': '#9AA7B8' })[e.type] || '#9AA7B8';
+        const isToday = e.date === todayStr;
+        return '<div class="db-event"><span class="db-ev-time">' + esc(e.time || '全天') + '</span>' +
+          '<span class="db-ev-main"><b>' + esc(e.title) + '</b><small>' + (isToday ? '今天' : scheduleDateLabel(e.date)) + (e.note ? ' · ' + esc(e.note) : '') + '</small></span>' +
+          '<span class="db-ev-type" style="color:' + color + ';border-color:' + color + '33;background:' + color + '12">' + esc(e.type) + '</span></div>';
+      }).join('') : '<div class="db-empty">还没有日程<br><span>在管理页「设计师日程」里添加</span></div>';
+      cards.push('<div class="db-card db-schedule"><div class="db-head"><div><span class="db-kicker">DESIGNER DESK</span><h3>设计师日程</h3></div><button class="db-link" type="button" id="boardScheduleAll">全部日程 →</button></div>' +
         '<div class="db-date">' + now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 · ' + week[now.getDay()] + '</div>' +
-        '<div class="db-events">' + eventsHtml + '</div></div>' +
-      '<div class="db-card db-weather"><div class="db-head"><div><span class="db-kicker">WEATHER</span><h3>天气</h3></div><button class="db-link" type="button" id="boardWeatherOpen">7 天 →</button></div>' +
-        '<div id="boardWeather" class="db-weather-body"><div class="db-loading">天气加载中…</div></div></div>' +
-      '<div class="db-card db-cal"><div class="db-head"><div><span class="db-kicker">CALENDAR</span><h3>日历</h3></div><button class="db-link" type="button" id="boardCalendarOpen">打开 →</button></div><div id="boardCal"></div></div>' +
-      '<div class="db-card db-fs"><div class="db-head"><div><span class="db-kicker">FENG SHUI</span><h3>风水参考</h3></div><button class="db-link" type="button" id="boardFsOpen">详细 →</button></div>' +
-        '<p class="db-fs-tip">' + esc(fengShuiTip()) + '</p><div class="db-fs-note">传统民俗参考，居住舒适与安全优先</div></div>' +
-      '</section>';
+        '<div class="db-events">' + eventsHtml + '</div></div>');
+    }
+    if (cfg.weather) {
+      cards.push('<div class="db-card db-weather"><div class="db-head"><div><span class="db-kicker">WEATHER</span><h3>天气</h3></div><button class="db-link" type="button" id="boardWeatherOpen">7 天 →</button></div>' +
+        '<div id="boardWeather" class="db-weather-body"><div class="db-loading">天气加载中…</div></div></div>');
+    }
+    if (cfg.calendar) {
+      cards.push('<div class="db-card db-cal"><div class="db-head"><div><span class="db-kicker">CALENDAR</span><h3>日历</h3></div><button class="db-link" type="button" id="boardCalendarOpen">打开 →</button></div><div id="boardCal"></div></div>');
+    }
+    if (cfg.fengshui) {
+      cards.push('<div class="db-card db-fs"><div class="db-head"><div><span class="db-kicker">FENG SHUI</span><h3>风水参考</h3></div><button class="db-link" type="button" id="boardFsOpen">详细 →</button></div>' +
+        '<p class="db-fs-tip">' + esc(fengShuiTip()) + '</p><div class="db-fs-note">传统民俗参考，居住舒适与安全优先</div></div>');
+    }
+    if (!cards.length) return '';
+    return '<section class="designer-board" aria-label="设计师工作台">' + cards.join('') + '</section>';
   }
 
   async function loadBoardWeather() {
@@ -2196,15 +2212,33 @@
     });
   }
 
+  function renderLifeSchedule(box) {
+    const events = sortedSchedule();
+    const colors = { '量房': '#4FC3F7', '方案': '#8A7CFF', '施工': '#F2B8B5', '客户': '#5FD3B4', '其他': '#9AA7B8' };
+    const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const body = events.length ? events.map((e) => {
+      const color = colors[e.type] || colors['其他'];
+      const d = new Date(e.date + 'T12:00:00');
+      return '<div class="schedule-item' + (e.done ? ' is-done' : '') + '">' +
+        '<div class="schedule-when"><b>' + (d.getMonth() + 1) + '/' + d.getDate() + '</b><span>' + week[d.getDay()] + ' · ' + esc(e.time || '全天') + '</span></div>' +
+        '<div class="schedule-main"><b>' + esc(e.title) + '</b><span>' + (e.note ? esc(e.note) : '—') + '</span></div>' +
+        '<span class="schedule-type" style="color:' + color + ';border-color:' + color + '33;background:' + color + '12">' + esc(e.type) + '</span>' +
+        '</div>';
+    }).join('') : '<div class="life-loading">还没有日程</div>';
+    box.innerHTML = '<div class="schedule-list">' + body + '</div>' +
+      '<div class="life-note">日程在管理页「设计师日程」维护；这里只读展示。隐藏首页工作台后，仍可以在这里查看。</div>';
+  }
+
   function openLifeModal(initialTab) {
     const body = '<div class="life-tabs" id="lifeTabs">' +
+      '<button type="button" data-life="schedule">日程</button>' +
       '<button type="button" data-life="calendar" class="is-active">日历</button>' +
       '<button type="button" data-life="weather">天气</button>' +
       '<button type="button" data-life="fengshui">风水参考</button></div>' +
       '<div class="life-body" id="lifeBody"></div>';
     const modal = openModal({
       title: '生活参考',
-      desc: '日历 · 国内天气 · 风水（传统民俗参考）',
+      desc: '日程 · 日历 · 国内天气 · 风水（传统民俗参考）',
       size: 'lg',
       body: body,
       footer: '<button class="btn" type="button" data-close>关闭</button>'
@@ -2213,7 +2247,8 @@
     const box = $('#lifeBody', modal.el);
     function show(tab) {
       tabs.forEach((b) => b.classList.toggle('is-active', b.dataset.life === tab));
-      if (tab === 'calendar') renderLifeCalendar(box);
+      if (tab === 'schedule') renderLifeSchedule(box);
+      else if (tab === 'calendar') renderLifeCalendar(box);
       else if (tab === 'weather') renderLifeWeather(box);
       else renderLifeFengShui(box);
     }
@@ -2223,7 +2258,7 @@
 
   const TUTORIAL_URLS = {
     public: 'https://togetherggg.github.io/yingxiangtu/',
-    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=9',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=10',
     local: 'http://127.0.0.1:51888/'
   };
 
@@ -2359,7 +2394,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261029 · 管理页 v9<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261030 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
