@@ -557,7 +557,8 @@
   try { const rawBoard = localStorage.getItem('yxg.board.prefs'); if (rawBoard) boardPrefs = JSON.parse(rawBoard); } catch (e) {}
 
   function boardConfig() {
-    const cfg = Object.assign({ board: true, schedule: true, weather: true, calendar: true, fengshui: true }, state.lib.board || {});
+    const libBoard = state.lib && state.lib.board ? state.lib.board : {};
+    const cfg = Object.assign({ board: true, schedule: true, weather: true, calendar: true, fengshui: true }, libBoard);
     if (boardPrefs) {
       ['board', 'schedule', 'weather', 'calendar', 'fengshui'].forEach((k) => {
         if (typeof boardPrefs[k] === 'boolean') cfg[k] = boardPrefs[k];
@@ -2483,7 +2484,7 @@
     if (key === 'wallpaper') {
       const w = wallpaperPrefs || loadWallpaperPrefs();
       const themeChips = WALLPAPER_THEMES.map((t) => '<button type="button" data-wallpaper-theme="' + t.id + '" class="' + (w.theme === t.id ? 'is-active' : '') + '">' + t.label + '</button>').join('');
-      const cards = allWallpapers().map((x) => '<button type="button" class="wallpaper-card' + (w.selected === x.id ? ' is-selected' : '') + '" data-wallpaper-pick="' + x.id + '" aria-pressed="' + (w.selected === x.id ? 'true' : 'false') + '">' +
+      const cards = customWallpapers.concat(WALLPAPERS).map((x) => '<button type="button" class="wallpaper-card' + (w.selected === x.id ? ' is-selected' : '') + '" data-wallpaper-pick="' + x.id + '" aria-pressed="' + (w.selected === x.id ? 'true' : 'false') + '">' +
         '<img src="' + x.thumb + '" alt="' + esc(x.title) + '" loading="lazy">' +
         '<span><b>' + esc(x.title) + '</b><em>' + wallpaperThemeLabel(x.theme) + (x.custom ? ' · 自定义' : '') + '</em></span>' +
         (x.custom ? '<span class="wallpaper-del" data-wallpaper-del="' + x.id + '" role="button" tabindex="0" aria-label="删除这张自定义壁纸">×</span>' : '') +
@@ -2492,10 +2493,8 @@
       return '<h4>艺术建筑壁纸</h4>' +
         '<p>室内、室外、园艺三类建筑与庭院主题壁纸。可以整体开关，也可以只选一张固定显示；轮播时按设定的时长自动切换。</p>' +
         '<label class="wallpaper-master"><input id="wallpaperEnabled" type="checkbox"' + (w.enabled ? ' checked' : '') + '><b>显示壁纸</b><span>关闭后恢复纯色 + 光晕背景</span></label>' +
-        '<h4>选择单张壁纸</h4>' +
-        '<p class="wallpaper-hint">点任意一张即选为单张，并自动关闭轮播。</p>' +
-        '<div class="wallpaper-grid">' + cards + '</div>' +
-        '<h4>添加自己的壁纸</h4>' +
+        '<details class="wallpaper-add-wrap" open>' +
+        '<summary>＋ 添加自己的壁纸（URL / 本地上传）</summary>' +
         '<div class="wallpaper-add">' +
         '<div class="wallpaper-add-row">' +
         '<input id="wallpaperUrl" type="url" placeholder="粘贴图片 URL（https://...）">' +
@@ -2509,6 +2508,10 @@
         '</div>' +
         '<div class="wallpaper-add-msg" id="wallpaperAddMsg">支持 JPG / PNG；本地图片会压缩后只保存在当前浏览器，不会上传到公网仓库。</div>' +
         '</div>' +
+        '</details>' +
+        '<h4>选择单张壁纸</h4>' +
+        '<p class="wallpaper-hint">点任意一张即选为单张，并自动关闭轮播。</p>' +
+        '<div class="wallpaper-grid">' + cards + '</div>' +
         '<h4>轮播与播放时长</h4>' +
         '<div class="wallpaper-theme-row"><span>轮播主题</span><div class="wallpaper-theme-tabs">' + themeChips + '</div></div>' +
         '<div class="wallpaper-controls">' +
@@ -2689,7 +2692,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261038 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261039 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
