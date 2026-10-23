@@ -1136,3 +1136,78 @@ body { -webkit-tap-highlight-color: transparent; }
 .settings-board-prefs input:disabled { opacity: .42; }
 .settings-board-prefs .sub { margin-left: auto; font-size: 10.5px; color: var(--text-3); }
 #settingsTabs button { font-size: 12px; padding: 0 5px; }
+/* ---------------------------------------------------------------- 丝滑动效层 */
+:root {
+  --ease-silk: cubic-bezier(.16, 1, .3, 1);
+  --ease-pop: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+
+  .topbar { animation: chromeDown .55s var(--ease-silk) both; }
+  .sidebar { animation: chromeIn .65s var(--ease-silk) .05s both; }
+  .content-head { animation: fadeUp .5s var(--ease-silk) both; }
+
+  .style-tile {
+    animation: tileIn .62s var(--ease-silk) backwards;
+    animation-delay: var(--d, 0ms);
+    transition: transform .5s var(--ease-silk), border-color .3s, box-shadow .5s var(--ease-silk), background .3s;
+  }
+  .style-tile:hover { transform: translateY(-5px) scale(1.004); }
+  .style-tile:active { transform: translateY(-2px) scale(.995); }
+  .style-tile .tile-media img { transition: transform 1.1s var(--ease-silk), opacity .5s; }
+  .style-tile:hover .tile-media img { transform: scale(1.06); }
+
+  .card {
+    transition: transform .45s var(--ease-silk), border-color .3s, box-shadow .45s var(--ease-silk), background .3s;
+  }
+  .card:hover, .card:focus-visible { transform: translateY(-5px) scale(1.003); }
+  .card:active { transform: scale(.992); }
+  .card-media img { transition: transform 1.05s var(--ease-silk), opacity .5s; }
+  .card:hover .card-media img { transform: scale(1.06); }
+
+  .content.animate .card { animation: cardIn .55s var(--ease-silk) backwards; animation-delay: var(--d, 0ms); }
+  .content.animate .link-row { animation: rowIn .45s var(--ease-silk) backwards; animation-delay: var(--d, 0ms); }
+
+  .btn, .icon-btn, .segmented button, .cat-kebab, .row-btn, .search-clear {
+    transition: transform .18s var(--ease-pop), background .22s, color .22s, border-color .22s, box-shadow .22s;
+  }
+  .btn:active, .icon-btn:active, .segmented button:active, .row-btn:active, .cat-kebab:active { transform: scale(.955); }
+  .icon-btn:hover { transform: translateY(-1px); }
+
+  .searchbox {
+    transition: border-color .25s, box-shadow .3s var(--ease-silk), background .25s, transform .3s var(--ease-silk);
+  }
+  .searchbox:focus-within {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, .13), 0 12px 30px -20px rgba(0, 0, 0, .65);
+  }
+
+  .nav-item, .cat-item { transition: background .22s, color .22s, transform .22s var(--ease-silk); }
+  .nav-item:hover, .cat-item:hover { transform: translateX(2px); }
+  .nav-item:active, .cat-item:active { transform: scale(.988); }
+
+  .modal-overlay { animation: overlayIn .25s var(--ease-silk) both; backdrop-filter: blur(10px); }
+  .modal { animation: modalIn .42s var(--ease-silk) both; }
+  .menu { animation: popIn .2s var(--ease-pop) both; }
+
+  .glow-a { animation: driftA 24s ease-in-out infinite alternate; }
+  .glow-b { animation: driftB 19s ease-in-out infinite alternate; }
+  .glow-c { animation: driftC 28s ease-in-out infinite alternate; }
+}
+
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after {
+  transition: background-color .45s var(--ease-silk), color .45s var(--ease-silk), border-color .45s var(--ease-silk), box-shadow .45s var(--ease-silk) !important;
+}
+
+@keyframes chromeDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes chromeIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes tileIn { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes driftA { to { transform: translate3d(34px, 26px, 0) scale(1.05); } }
+@keyframes driftB { to { transform: translate3d(-28px, 22px, 0) scale(1.04); } }
+@keyframes driftC { to { transform: translate3d(26px, -24px, 0) scale(1.03); } }
