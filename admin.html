@@ -391,6 +391,7 @@
     setSaveStatus('正在发布到 GitHub…', 'warn');
     setStatus('正在保存…', 'warn');
     try {
+      lib.updatedAt = new Date().toISOString();
       const json = JSON.stringify(lib);
       const res = await api('PUT', '/contents/' + FILE, {
         message: '管理后台更新 ' + new Date().toLocaleString('zh-CN'),
