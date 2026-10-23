@@ -362,22 +362,40 @@
     markSaved._t = setTimeout(() => { el.style.opacity = '.75'; }, 1600);
   }
 
+  function base64Json(text) {
+    const bin = atob(String(text || '').replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+  }
+
   async function loadData() {
     // GitHub Pages 静态版：页面壳固定，数据从 data/library.json 读取
     if (window.__STATIC_LIBRARY_URL__) {
       state.readOnly = true;
       state.mode = 'public';
       api.avail = false;
+      let raw = null;
+      // 快速通道：GitHub API 读最新提交，避开 Pages 的 JSON 缓存
       try {
-        const res = await fetch(window.__STATIC_LIBRARY_URL__ + '?v=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const raw = await res.json();
-        if (raw && Array.isArray(raw.links)) {
-          state.baseUpdatedAt = String(raw.updatedAt || '');
-          return normalizeLibrary(raw);
+        const apiUrl = 'https://api.github.com/repos/Togetherggg/yingxiangtu/contents/data/library.json?ref=main&t=' + Date.now();
+        const res = await fetch(apiUrl, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+        if (res.ok) {
+          const j = await res.json();
+          if (j && j.content) raw = base64Json(j.content);
         }
-      } catch (err) {
-        console.warn('静态数据加载失败', err);
+      } catch (err) { /* 限额或网络失败时回退静态文件 */ }
+      if (!raw) {
+        try {
+          const res = await fetch(window.__STATIC_LIBRARY_URL__ + '?v=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) raw = await res.json();
+        } catch (err) {
+          console.warn('静态数据加载失败', err);
+        }
+      }
+      if (raw && Array.isArray(raw.links)) {
+        state.baseUpdatedAt = String(raw.updatedAt || '');
+        return normalizeLibrary(raw);
       }
       return null;
     }
