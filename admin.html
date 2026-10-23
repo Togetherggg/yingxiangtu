@@ -146,6 +146,12 @@
     padding: 10px 20px 16px; border-top: 1px solid var(--line);
   }
   .adm-tutorial-body .settings-sticker { width: 140px; height: 140px; }
+  .adm-board-prefs { display: flex; flex-direction: column; gap: 7px; margin: 4px 0 10px; }
+  .adm-board-prefs label {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2);
+    cursor: pointer; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+  }
+  .adm-board-prefs input { width: 15px; height: 15px; accent-color: var(--accent); }
   [data-theme="light"] .adm-top { background: rgba(255, 255, 255, .88); }
   [data-theme="light"] .adm-savebar { background: rgba(255, 255, 255, .94); }
   [data-theme="light"] .adm-mask { background: rgba(24, 30, 44, .32); }
@@ -295,6 +301,17 @@
             <button class="btn btn-primary" type="submit" style="width:100%">添加日程</button>
           </form>
           <div class="adm-list" id="evList" style="margin-top:12px;max-height:340px"></div>
+        </div>
+
+        <div class="adm-card">
+          <h2>首页工作台 <span class="hint">控制公网页首页的显眼版块</span></h2>
+          <div class="adm-board-prefs" id="boardPrefs">
+            <label><input type="checkbox" data-board="schedule"> 设计师日程</label>
+            <label><input type="checkbox" data-board="weather"> 天气</label>
+            <label><input type="checkbox" data-board="calendar"> 日历</label>
+            <label><input type="checkbox" data-board="fengshui"> 风水参考</label>
+          </div>
+          <p class="adm-tip">取消勾选后，该模块从公网页首页隐藏；仍可从公网页右上角日历图标打开（里面始终有日程/日历/天气/风水四个标签）。</p>
         </div>
       </div>
 
@@ -468,6 +485,7 @@
 
     renderLinks();
     renderEvents();
+    renderBoardPrefs();
     updateStats();
   }
 
@@ -505,8 +523,12 @@
     return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + week[d.getDay()];
   }
 
-  function renderEvents() {
-    const list = $('#evList');
+  function renderBoardPrefs() {
+    const b = lib.board || {};
+    $$('#boardPrefs input').forEach((cb) => { cb.checked = b[cb.dataset.board] !== false; });
+  }
+
+  function renderEvents() {    const list = $('#evList');
     if (!list || !lib) return;
     const today = new Date();
     const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
@@ -552,6 +574,7 @@
     if (!Array.isArray(lib.links)) lib.links = [];
     if (!Array.isArray(lib.tombstones)) lib.tombstones = [];
     if (!Array.isArray(lib.schedule)) lib.schedule = [];
+    if (!lib.board || typeof lib.board !== 'object') lib.board = { schedule: true, weather: true, calendar: true, fengshui: true };
     const now = new Date();
     $('#evDate').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     dirty = 0;
@@ -913,7 +936,7 @@
   }
 
   function tutorialContent(key) {
-    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=9';
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=10';
     const P = 'https://togetherggg.github.io/yingxiangtu/';
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
@@ -985,6 +1008,8 @@
         '<li>本地改完双击「发布更新到公网」，上传最新数据 JSON 和新增缩略图。</li>' +
         '<li>如果同时用管理页，建议以管理页为准；本地旧数据发布前先确认不会覆盖新内容。</li>' +
         '</ul>' +
+        '<h4>首页工作台显示</h4>' +
+        '<p>管理页「首页工作台」可以单独勾选设计师日程、天气、日历、风水参考。取消勾选后，该模块从公网页首页隐藏，但仍可从公网页右上角日历图标打开（里面始终有日程/日历/天气/风水四个标签）。修改后点「保存并发布」。</p>' +
         '<h4>忘记 Token / 管理权限</h4>' +
         '<p>公网页 → 设置 → 管理教程 →「获取管理权限 / 忘记 Token」，按页面提示走咨询流程；公网页不会显示 Token，正确密码只显示本机位置和生成新 Token 的入口。</p>' +
         '<h4>Token 安全</h4>' +
@@ -1020,7 +1045,7 @@
       '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261029 · 管理页 v9<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261030 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openTutorial() {
@@ -1093,6 +1118,12 @@
     });
     $('#addCatForm').addEventListener('submit', addCat);
     $('#addEventForm').addEventListener('submit', addEvent);
+    $$('#boardPrefs input').forEach((cb) => cb.addEventListener('change', () => {
+      if (!lib.board) lib.board = { schedule: true, weather: true, calendar: true, fengshui: true };
+      lib.board[cb.dataset.board] = cb.checked;
+      markDirty();
+      setStatus('首页工作台显示已修改，记得保存发布', 'ok');
+    }));
     $('#evList').addEventListener('click', (e) => {
       const d = e.target.closest('[data-ev-del]');
       if (d) { deleteEvent(d.dataset.evDel); return; }
