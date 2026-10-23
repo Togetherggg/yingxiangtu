@@ -124,6 +124,16 @@
   .adm-dialog h3 { font-size: 16px; margin-bottom: 10px; }
   .adm-dialog p { font-size: 13px; color: var(--text-2); line-height: 1.7; margin-bottom: 18px; }
   .adm-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; }
+  .adm-ev-date { flex: 0 0 76px; font-size: 11px; color: var(--text-3); line-height: 1.35; }
+  .adm-ev-date b { display: block; color: var(--text-2); font-size: 12px; font-weight: 600; }
+  .adm-ev-body { flex: 1 1 auto; min-width: 0; }
+  .adm-ev-title { display: block; font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .adm-ev-sub { display: block; font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+  .adm-ev-type { flex: 0 0 auto; font-size: 10.5px; padding: 2px 7px; border-radius: 6px; background: var(--panel-2); color: var(--text-2); }
+  .adm-ev-done { flex: 0 0 auto; border: 0; background: none; color: var(--text-3); font-size: 11px; padding: 3px 6px; border-radius: 6px; }
+  .adm-ev-done:hover { color: var(--ok); background: rgba(52,211,153,.1); }
+  .adm-item.is-past { opacity: .52; }
+  .adm-item.is-done .adm-ev-title { text-decoration: line-through; color: var(--text-3); }
   @media (max-width: 880px) {
     .adm-grid { grid-template-columns: 1fr; }
     .adm-top { padding: 12px 14px; }
@@ -222,6 +232,38 @@
           </form>
           <div class="adm-list" id="catList" style="margin-top:12px"></div>
         </div>
+
+        <div class="adm-card">
+          <h2>设计师日程 <span class="hint">公网页「设计师工作台」显示</span></h2>
+          <form id="addEventForm">
+            <div class="adm-row">
+              <div class="adm-field" style="flex:1 1 auto">
+                <label for="evDate">日期 *</label>
+                <input class="input" id="evDate" type="date">
+              </div>
+              <div class="adm-field" style="flex:0 0 112px">
+                <label for="evTime">时间</label>
+                <input class="input" id="evTime" type="time">
+              </div>
+            </div>
+            <div class="adm-field">
+              <label for="evTitle">日程标题 *</label>
+              <input class="input" id="evTitle" type="text" maxlength="40" placeholder="例如：滨江样板间量房" autocomplete="off">
+            </div>
+            <div class="adm-field">
+              <label for="evType">类型</label>
+              <select id="evType">
+                <option>量房</option><option>方案</option><option>施工</option><option>客户</option><option>其他</option>
+              </select>
+            </div>
+            <div class="adm-field">
+              <label for="evNote">备注</label>
+              <input class="input" id="evNote" type="text" maxlength="80" placeholder="地址 / 联系人 / 要带的东西" autocomplete="off">
+            </div>
+            <button class="btn btn-primary" type="submit" style="width:100%">添加日程</button>
+          </form>
+          <div class="adm-list" id="evList" style="margin-top:12px;max-height:340px"></div>
+        </div>
       </div>
 
       <div class="adm-col">
@@ -268,6 +310,7 @@
   const LS_TOKEN = 'yxg.admin.token.v1';
   const PALETTE = ['#C9A227','#B08968','#8A7CFF','#4FC3F7','#5FD3B4','#D9A066','#F2B8B5','#F2D8A8','#C3A6E8','#9AA7B8','#A8B5A2','#D7E1EA'];
   const SITES = { 'vr.justeasy.cn':'建E全景','vr.3d66.com':'3D66全景','vr.zhiouwang.com':'知欧全景','vr.1miba.com':'米吧全景','vr.shinewonder.com':'ShineWonder' };
+  const EVENT_COLORS = { '量房': '#4FC3F7', '方案': '#8A7CFF', '施工': '#F2B8B5', '客户': '#5FD3B4', '其他': '#9AA7B8' };
 
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
@@ -370,6 +413,7 @@
     if (current && sortedCats().some((c) => c.id === current)) sel.value = current;
 
     renderLinks();
+    renderEvents();
     updateStats();
   }
 
@@ -401,8 +445,32 @@
     }).join('') || '<div class="adm-empty">' + (q ? '没有匹配的链接' : '还没有链接，先添加一条') + '</div>';
   }
 
-  function showLogin(msg) {
-    $('#loginPanel').hidden = false;
+  function eventDateLabel(date) {
+    const d = new Date(date + 'T12:00:00');
+    const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + week[d.getDay()];
+  }
+
+  function renderEvents() {
+    const list = $('#evList');
+    if (!list || !lib) return;
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    const events = (lib.schedule || []).slice().sort((a, b) => (a.date + ' ' + (a.time || '99:99')).localeCompare(b.date + ' ' + (b.time || '99:99')));
+    list.innerHTML = events.map((e) => {
+      const color = EVENT_COLORS[e.type] || EVENT_COLORS['其他'];
+      return '<div class="adm-item' + (e.date < todayStr ? ' is-past' : '') + (e.done ? ' is-done' : '') + '" style="--c:' + color + '">' +
+        '<span class="adm-ev-date"><b>' + esc(eventDateLabel(e.date)) + '</b>' + esc(e.time || '全天') + '</span>' +
+        '<div class="adm-ev-body"><span class="adm-ev-title">' + esc(e.title) + '</span>' +
+          (e.note ? '<span class="adm-ev-sub">' + esc(e.note) + '</span>' : '') + '</div>' +
+        '<span class="adm-ev-type" style="color:' + color + '">' + esc(e.type) + '</span>' +
+        '<button class="adm-ev-done" type="button" data-ev-done="' + esc(e.id) + '">' + (e.done ? '已完成' : '完成') + '</button>' +
+        '<button class="adm-del" type="button" data-ev-del="' + esc(e.id) + '">删除</button>' +
+      '</div>';
+    }).join('') || '<div class="adm-empty">还没有日程，添加一条</div>';
+  }
+
+  function showLogin(msg) {    $('#loginPanel').hidden = false;
     $('#adminPanel').hidden = true;
     $('#saveBar').hidden = true;
     $('#refreshBtn').hidden = true;
@@ -429,6 +497,9 @@
     if (!Array.isArray(lib.categories)) lib.categories = [];
     if (!Array.isArray(lib.links)) lib.links = [];
     if (!Array.isArray(lib.tombstones)) lib.tombstones = [];
+    if (!Array.isArray(lib.schedule)) lib.schedule = [];
+    const now = new Date();
+    $('#evDate').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     dirty = 0;
     showAdmin();
     render();
@@ -643,6 +714,48 @@
     setStatus('已删除，记得保存发布', 'ok');
   }
 
+  function addEvent(e) {
+    e.preventDefault();
+    const date = ($('#evDate').value || '').trim();
+    const title = ($('#evTitle').value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { setStatus('请选择日程日期', 'warn'); return; }
+    if (!title) { setStatus('请填写日程标题', 'warn'); return; }
+    if (!Array.isArray(lib.schedule)) lib.schedule = [];
+    lib.schedule.push({
+      id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      date: date,
+      time: ($('#evTime').value || '').slice(0, 5),
+      title: title.slice(0, 60),
+      type: $('#evType').value || '其他',
+      note: ($('#evNote').value || '').trim().slice(0, 160),
+      done: false
+    });
+    $('#evTitle').value = '';
+    $('#evNote').value = '';
+    markDirty();
+    renderEvents();
+    setStatus('已添加日程，记得保存发布', 'ok');
+  }
+
+  function deleteEvent(id) {
+    const ev = (lib.schedule || []).filter((x) => x.id === id)[0];
+    if (!ev) return;
+    if (!confirm('删除日程「' + ev.title + '」？')) return;
+    lib.schedule = lib.schedule.filter((x) => x.id !== id);
+    markDirty();
+    renderEvents();
+    setStatus('日程已删除，记得保存发布', 'ok');
+  }
+
+  function toggleEvent(id) {
+    const ev = (lib.schedule || []).filter((x) => x.id === id)[0];
+    if (!ev) return;
+    ev.done = !ev.done;
+    markDirty();
+    renderEvents();
+    setStatus(ev.done ? '已标记完成' : '已恢复未完成', 'ok');
+  }
+
   function ensureUncat() {
     let c = lib.categories.filter((x) => x.id === 'uncategorized')[0];
     if (!c) {
@@ -769,6 +882,13 @@
       if (f) uploadCover(f);
     });
     $('#addCatForm').addEventListener('submit', addCat);
+    $('#addEventForm').addEventListener('submit', addEvent);
+    $('#evList').addEventListener('click', (e) => {
+      const d = e.target.closest('[data-ev-del]');
+      if (d) { deleteEvent(d.dataset.evDel); return; }
+      const t = e.target.closest('[data-ev-done]');
+      if (t) toggleEvent(t.dataset.evDone);
+    });
     $('#filterInput').addEventListener('input', renderLinks);
     $('#catList').addEventListener('click', (e) => {
       const f = e.target.closest('[data-filter-uncat]');
