@@ -1125,3 +1125,14 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 700px) {
   .designer-board .db-card { flex: 1 1 100%; }
 }
+/* 工作台显示设置 */
+.settings-board-prefs { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 12px; }
+.settings-board-prefs label {
+  display: flex; align-items: center; gap: 9px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 11px; background: var(--panel);
+  font-size: 13px; color: var(--text); cursor: pointer;
+}
+.settings-board-prefs input { width: 16px; height: 16px; accent-color: var(--accent); flex: 0 0 auto; }
+.settings-board-prefs input:disabled { opacity: .42; }
+.settings-board-prefs .sub { margin-left: auto; font-size: 10.5px; color: var(--text-3); }
+#settingsTabs button { font-size: 12px; padding: 0 5px; }
