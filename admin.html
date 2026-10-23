@@ -247,6 +247,10 @@
   <div class="adm-dialog" role="dialog" aria-modal="true" aria-labelledby="moveTitle">
     <h3 id="moveTitle">移动链接</h3>
     <p id="moveText"></p>
+    <div class="adm-field" id="movePickWrap" hidden style="margin-bottom:16px">
+      <label for="moveSelect">移动到风格</label>
+      <select id="moveSelect"></select>
+    </div>
     <div class="adm-dialog-actions">
       <button class="btn" type="button" id="moveCancel">取消</button>
       <button class="btn btn-primary" type="button" id="moveOk">确认移动</button>
@@ -352,7 +356,7 @@
       const n = lib.links.filter((l) => l.categoryId === c.id).length;
       const sys = !!c.system;
       return '<div class="adm-item" data-cat="' + esc(c.id) + '" style="--c:' + esc(c.color) + '">' +
-        '<i class="dot"></i><span class="name">' + esc(c.name) + (sys ? ' <span class="count">系统</span>' : '') + '</span>' +
+        '<i class="dot"></i><span class="name">' + esc(c.name) + (sys ? ' <span class="meta">系统</span>' : '') + '</span>' +
         '<span class="count">' + n + ' 条</span>' +
         (sys
           ? '<button class="adm-del" type="button" data-filter-uncat="1">查看</button>'
@@ -390,6 +394,7 @@
           '<span class="adm-link-sub">' + esc(catName(l.categoryId)) + ' · ' + esc(siteOf(l)) + ' · ' + esc(l.url) + esc(origin) + '</span>' +
         '</div>' +
         (isUncat ? '<span class="meta" style="color:var(--warn)">可拖动</span>' : '') +
+        (isUncat ? '<button class="adm-del" type="button" data-move="' + esc(l.id) + '" style="color:var(--accent-2)">移动</button>' : '') +
         '<a class="meta" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent-2);text-decoration:none">打开</a>' +
         '<button class="adm-del" type="button" data-del="' + esc(l.id) + '">删除</button>' +
       '</div>';
@@ -673,19 +678,36 @@
     if (!l || !c || c.id === 'uncategorized') return;
     pendingMove = { linkId: linkId, catId: catId };
     $('#moveText').textContent = '把「' + (l.title || l.url) + '」从「待分类」移到风格「' + c.name + '」？';
+    $('#movePickWrap').hidden = true;
+    $('#moveMask').hidden = false;
+  }
+
+  function showMovePick(linkId) {
+    const l = lib.links.filter((x) => x.id === linkId)[0];
+    if (!l) return;
+    const targets = lib.categories.filter((c) => !c.system && c.id !== 'uncategorized');
+    if (!targets.length) { setStatus('没有可移动的目标风格，请先新建风格', 'warn'); return; }
+    pendingMove = { linkId: linkId, catId: '' };
+    const sel = $('#moveSelect');
+    sel.innerHTML = targets.map((c) => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('');
+    sel.value = targets[0].id;
+    $('#moveText').textContent = '把「' + (l.title || l.url) + '」移到哪个风格？';
+    $('#movePickWrap').hidden = false;
     $('#moveMask').hidden = false;
   }
 
   function closeMoveConfirm() {
     pendingMove = null;
     $('#moveMask').hidden = true;
+    $('#movePickWrap').hidden = true;
   }
 
   function confirmMove() {
     if (!pendingMove) return;
+    const catId = pendingMove.catId || ($('#moveSelect') ? $('#moveSelect').value : '');
     const l = lib.links.filter((x) => x.id === pendingMove.linkId)[0];
-    const c = lib.categories.filter((x) => x.id === pendingMove.catId)[0];
-    if (l && c) {
+    const c = lib.categories.filter((x) => x.id === catId)[0];
+    if (l && c && !c.system) {
       l.categoryId = c.id;
       delete l.pendingStyle;
       markDirty();
@@ -755,6 +777,8 @@
       if (b) delCat(b.dataset.delcat);
     });
     $('#linkList').addEventListener('click', (e) => {
+      const m = e.target.closest('[data-move]');
+      if (m) { showMovePick(m.dataset.move); return; }
       const b = e.target.closest('[data-del]');
       if (b) delLink(b.dataset.del);
     });
