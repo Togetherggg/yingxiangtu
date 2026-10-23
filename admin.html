@@ -76,13 +76,20 @@
   .adm-sw button.is-active { border-color: var(--text); }
   .adm-color-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .adm-color-picker {
-    width: 40px; height: 34px; border-radius: 10px; overflow: hidden;
-    border: 1px solid var(--line); background: var(--panel); display: inline-flex;
-    align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto;
+    position: relative; width: 40px; height: 40px; border-radius: 50%;
+    background: conic-gradient(#ff4d4d, #ffd24d, #7bff7b, #4dffff, #4d7bff, #ff4dff, #ff4d4d);
+    border: 1px solid var(--line); display: inline-flex; align-items: center;
+    justify-content: center; cursor: pointer; flex: 0 0 auto;
+  }
+  .adm-color-picker::before {
+    content: ''; position: absolute; inset: 4px; border-radius: 50%; background: var(--panel);
+  }
+  .adm-color-dot {
+    position: absolute; inset: 8px; border-radius: 50%; background: #C9A227;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.28); pointer-events: none;
   }
   .adm-color-picker input[type=color] {
-    width: 58px; height: 58px; border: 0; padding: 0; background: none;
-    transform: scale(1.35); cursor: pointer;
+    position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;
   }
   .adm-savebar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
@@ -188,6 +195,7 @@
                 <div class="adm-sw" id="catColors"></div>
                 <label class="adm-color-picker" title="打开色盘自定义颜色">
                   <input type="color" id="catColorInput" value="#C9A227" aria-label="自定义颜色">
+                  <span class="adm-color-dot" id="catColorDot"></span>
                 </label>
               </div>
             </div>
@@ -617,17 +625,21 @@
   function initColors() {
     const box = $('#catColors');
     const input = $('#catColorInput');
+    const dot = $('#catColorDot');
     box.innerHTML = PALETTE.map((c) => '<button type="button" data-color="' + c + '" style="--c:' + c + '" class="' + (c === pickColor ? 'is-active' : '') + '" aria-label="' + c + '"></button>').join('');
     input.value = pickColor;
+    dot.style.background = pickColor;
     box.addEventListener('click', (e) => {
       const b = e.target.closest('[data-color]');
       if (!b) return;
       pickColor = b.dataset.color;
       input.value = pickColor;
+      dot.style.background = pickColor;
       $$('[data-color]', box).forEach((x) => x.classList.toggle('is-active', x === b));
     });
     input.addEventListener('input', () => {
       pickColor = input.value;
+      dot.style.background = pickColor;
       $$('[data-color]', box).forEach((x) => x.classList.remove('is-active'));
     });
   }
