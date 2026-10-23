@@ -124,6 +124,27 @@
   .adm-dialog h3 { font-size: 16px; margin-bottom: 10px; }
   .adm-dialog p { font-size: 13px; color: var(--text-2); line-height: 1.7; margin-bottom: 18px; }
   .adm-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; }
+  .adm-tutorial-dialog {
+    width: min(900px, 100%); max-height: calc(100vh - 36px); padding: 0; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .adm-tutorial-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 18px 20px 0;
+  }
+  .adm-tutorial-head h3 { font-size: 17px; }
+  .adm-tutorial-close {
+    width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text-2); font-size: 19px; line-height: 1; cursor: pointer;
+  }
+  .adm-tutorial-close:hover { color: var(--text); background: var(--panel-2); }
+  .adm-tutorial-dialog .life-tabs { margin: 14px 20px 0; flex: 0 0 auto; }
+  .adm-tutorial-body { overflow: auto; padding: 14px 20px 18px; }
+  .adm-tutorial-foot {
+    flex: 0 0 auto; display: flex; justify-content: flex-end;
+    padding: 10px 20px 16px; border-top: 1px solid var(--line);
+  }
+  .adm-tutorial-body .settings-sticker { width: 140px; height: 140px; }
   .adm-ev-date { flex: 0 0 76px; font-size: 11px; color: var(--text-3); line-height: 1.35; }
   .adm-ev-date b { display: block; color: var(--text-2); font-size: 12px; font-weight: 600; }
   .adm-ev-body { flex: 1 1 auto; min-width: 0; }
@@ -153,6 +174,7 @@
     <div><b>效果图网址 · 管理</b><em>添加 / 删除 / 新建风格</em></div>
   </div>
   <div class="adm-actions">
+    <button class="btn btn-sm" id="tutorialBtn" type="button">使用教程</button>
     <a class="btn btn-sm" href="./" target="_blank" rel="noopener">打开公网页</a>
     <button class="btn btn-sm" id="refreshBtn" hidden>刷新数据</button>
     <button class="btn btn-sm" id="logoutBtn" hidden>退出管理</button>
@@ -300,6 +322,25 @@
   </div>
 </div>
 
+<div class="adm-mask" id="tutorialMask" hidden>
+  <div class="adm-dialog adm-tutorial-dialog" role="dialog" aria-modal="true" aria-label="使用教程">
+    <div class="adm-tutorial-head">
+      <h3>使用教程</h3>
+      <button class="adm-tutorial-close" id="tutorialClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="life-tabs" id="tutorialTabs">
+      <button type="button" data-tutorial="guide" class="is-active">使用教程</button>
+      <button type="button" data-tutorial="admin">管理教程</button>
+      <button type="button" data-tutorial="faq">常见问题</button>
+      <button type="button" data-tutorial="about">关于</button>
+    </div>
+    <div class="settings-doc adm-tutorial-body" id="tutorialBody"></div>
+    <div class="adm-tutorial-foot">
+      <button class="btn" type="button" id="tutorialClose2">关闭</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   'use strict';
@@ -315,6 +356,9 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const ico = (name) => name === 'alert'
+    ? '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.5 20h19Z"/><path d="M12 9v5"/><circle cx="12" cy="17.2" r=".7" fill="currentColor" stroke="none"/></svg>'
+    : '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".8" fill="currentColor" stroke="none"/></svg>';
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   let token = '';
@@ -858,6 +902,142 @@
     });
   }
 
+  function tutorialContent(key) {
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=9';
+    const P = 'https://togetherggg.github.io/yingxiangtu/';
+    if (key === 'guide') {
+      return '<h4>公网页怎么用</h4>' +
+        '<ol>' +
+        '<li><strong>看风格</strong>：首页「风格总览」按装修风格排列，点任意风格进入该风格的链接列表。</li>' +
+        '<li><strong>全部链接</strong>：左栏「全部链接」一次看所有效果图；顶部搜索支持标题、网址、风格、来源，空格分词，<span class="settings-kbd">Ctrl</span> + <span class="settings-kbd">K</span> 快速聚焦。</li>' +
+        '<li><strong>视图 / 主题</strong>：右上角切换网格/列表、明暗主题；选择会保存在当前浏览器。</li>' +
+        '<li><strong>手机 / 微信</strong>：点手机图标复制公网链接或扫码，发到微信即可在手机打开。</li>' +
+        '<li><strong>卡片</strong>：点卡片打开效果图网站；卡片上的复制按钮可以复制原始链接。</li>' +
+        '</ol>' +
+        '<h4>首页「设计师工作台」</h4>' +
+        '<ul>' +
+        '<li><strong>设计师日程</strong>：显示最近 4 条未完成日程；点「全部日程 →」看完整日程；日历圆点表示当天有安排，点日期可看当天日程。</li>' +
+        '<li><strong>天气</strong>：当前 + 未来 3 天；点「7 天 →」打开完整预报，可切换 14 个国内城市，默认丽水。</li>' +
+        '<li><strong>日历</strong>：本月迷你日历，今天高亮，上下月切换；点「打开 →」进入大日历。</li>' +
+        '<li><strong>风水参考</strong>：每天一条小提示；点「详细 →」查看 15 个板块。属于传统民俗与居住经验参考。</li>' +
+        '</ul>' +
+        '<h4>「待分类」是什么</h4>' +
+        '<p>删除某个风格时，里面的效果图<strong>不会删除</strong>，链接会集中到「待分类」。公网页可以正常浏览；把链接归回某个风格的操作在管理页完成。</p>' +
+        '<div class="settings-tip is-info">' + ico('info') + '<span>公网页对访客只读：可以看、搜索、分享，不能修改任何内容。</span></div>' +
+        '<h4>入口</h4>' +
+        '<p>公网页：<a href="' + P + '" target="_blank" rel="noopener">' + P + '</a></p>' +
+        '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a>（需电脑上的「效果图网址」正在运行）</p>';
+    }
+    if (key === 'admin') {
+      return '<h4>管理页入口</h4>' +
+        '<p><a href="' + A + '" target="_blank" rel="noopener">' + A + '</a></p>' +
+        '<div class="settings-tip">' + ico('alert') + '<span>管理页需要 GitHub Token。Token 只保存在本机，<strong>不会显示在公网页</strong>；不要发给别人。</span></div>' +
+        '<h4>第一次登录</h4>' +
+        '<ol>' +
+        '<li>打开管理页，把 Token 粘贴到输入框，点「进入管理」。</li>' +
+        '<li>Token 在本机 <code>C:\\效果图网址\\data\\github.json</code>；桌面「效果图管理」快捷方式会自动带上 Token。</li>' +
+        '<li>手机第一次需粘贴一次，之后自动记住；公共电脑用完点「退出管理」。</li>' +
+        '</ol>' +
+        '<h4>添加效果图</h4>' +
+        '<ol>' +
+        '<li>在「添加效果图」填链接地址、标题（可留空）、选择风格。</li>' +
+        '<li>封面图可粘贴 URL，或点「上传本地图片」选 PNG/JPG，自动压缩成 JPG 上传 GitHub 并填入 URL。</li>' +
+        '<li>点「添加这条链接」→ 右下角「保存并发布」。约 2 秒保存完成；刷新公网页即可。新图片首次需等 Pages 部署约 1 分钟。</li>' +
+        '</ol>' +
+        '<h4>风格管理</h4>' +
+        '<ul>' +
+        '<li><strong>新增</strong>：在「风格管理」填名称，点预设色块或彩色圆环自定义颜色，点「添加风格」。</li>' +
+        '<li><strong>删除</strong>：点右侧「删除」。里面的链接<strong>不会删除</strong>，会移到「待分类」。</li>' +
+        '<li>「待分类」是系统分类，不能删除或改名；普通风格可以新增和删除。</li>' +
+        '</ul>' +
+        '<h4>待分类怎么移动</h4>' +
+        '<ol>' +
+        '<li>点「待分类」行的「查看」，或搜索筛选出待分类链接。</li>' +
+        '<li>把链接行拖到左侧目标风格上，松手后弹「确认移动 / 取消」。</li>' +
+        '<li>手机不方便拖时，点链接行的「移动」按钮，选择目标风格再确认。</li>' +
+        '<li>移动后点「保存并发布」；原风格会显示在链接下方。</li>' +
+        '</ol>' +
+        '<h4>设计师日程</h4>' +
+        '<ol>' +
+        '<li>在「设计师日程」选择日期、时间，填标题、类型（量房/方案/施工/客户/其他）和备注。</li>' +
+        '<li>点「添加日程」；可标记完成或删除。</li>' +
+        '<li>「保存并发布」后，公网页工作台、日历圆点和完整日程表会同步。</li>' +
+        '</ol>' +
+        '<h4>保存与发布</h4>' +
+        '<ul>' +
+        '<li>修改先是草稿；点右下角「保存并发布」才写入 GitHub。</li>' +
+        '<li>保存后数据走快速通道，公网页刷新即可；图片文件需等 Pages 部署。</li>' +
+        '<li>「放弃修改」重新读取公网页数据；冲突时点「刷新数据」再改。</li>' +
+        '</ul>' +
+        '<h4>本地版与发布</h4>' +
+        '<ul>' +
+        '<li>桌面「效果图网址」打开本地版，可批量编辑、搜索、预览、备份。</li>' +
+        '<li>本地改完双击「发布更新到公网」，上传最新数据 JSON 和新增缩略图。</li>' +
+        '<li>如果同时用管理页，建议以管理页为准；本地旧数据发布前先确认不会覆盖新内容。</li>' +
+        '</ul>' +
+        '<h4>忘记 Token / 管理权限</h4>' +
+        '<p>公网页 → 设置 → 管理教程 →「获取管理权限 / 忘记 Token」，按页面提示走咨询流程；公网页不会显示 Token，正确密码只显示本机位置和生成新 Token 的入口。</p>' +
+        '<h4>Token 安全</h4>' +
+        '<ul>' +
+        '<li>Token 等同仓库写权限，不要发到群里、截图或公开页面。</li>' +
+        '<li>怀疑泄露：GitHub → Settings → Developer settings → Personal access tokens → 删除旧 Token，新建一个，更新本机 <code>data\\github.json</code>。</li>' +
+        '<li>删除 Token 不影响已上线公网页，只会让管理页/发布不能再写入。</li>' +
+        '</ul>';
+    }
+    if (key === 'faq') {
+      return '<h4>保存后公网页没变化？</h4><p>先刷新。数据通常几秒生效；新封面图需等 GitHub Pages 部署约 1 分钟。仍不显示按 <span class="settings-kbd">Ctrl</span> + <span class="settings-kbd">F5</span>。</p>' +
+        '<h4>删除风格会删效果图吗？</h4><p>不会，链接移到「待分类」，图片文件也保留。</p>' +
+        '<h4>待分类能删吗？</h4><p>不能，它是系统分类。</p>' +
+        '<h4>日程在哪改？</h4><p>管理页「设计师日程」；公网页只读展示。</p>' +
+        '<h4>天气为什么慢？</h4><p>来自 Open-Meteo 公开接口，通常 3~5 秒；网络不稳定时稍后刷新或换城市。</p>' +
+        '<h4>风水内容准确吗？</h4><p>传统民俗与居住经验参考，不是专业风水/结构/燃气/消防建议；采光、通风、安全优先。</p>' +
+        '<h4>数据在哪？</h4><p>GitHub 仓库 <code>Togetherggg/yingxiangtu</code> 的 <code>data/library.json</code>；本地在 <code>C:\\效果图网址\\data\\library.json</code>；本地有备份，GitHub 有提交历史。</p>' +
+        '<h4>手机/微信能看吗？</h4><p>可以，发公网链接即可。</p>' +
+        '<h4>管理页密码是什么？</h4><p>不是账号密码，是 GitHub Token；只有持有 Token 的人能进。</p>' +
+        '<h4>本地版打不开？</h4><p>确认 <code>C:\\效果图网址\\效果图网址.exe</code> 存在，双击桌面「效果图网址」；被安全软件拦截时选择允许。</p>';
+    }
+    return '<h4>效果图网址 · 风格灵感库</h4>' +
+      '<p>按装修风格整理全景效果图链接的私人资料库，同时提供公网只读页、管理页和本地版。</p>' +
+      '<div class="settings-split">' +
+      '<div class="settings-mini"><b>公网页</b><span>任何人可看，手机/微信可开；只读。</span></div>' +
+      '<div class="settings-mini"><b>管理页</b><span>只有 Token 持有者可改；链接、风格、日程。</span></div>' +
+      '<div class="settings-mini"><b>本地版</b><span>Windows 桌面程序；批量编辑、预览、备份。</span></div>' +
+      '<div class="settings-mini"><b>数据</b><span>GitHub 仓库 JSON；保存即提交，图片经 Pages 部署。</span></div>' +
+      '</div>' +
+      '<h4>当前入口</h4>' +
+      '<p>公网页：<a href="' + P + '" target="_blank" rel="noopener">' + P + '</a></p>' +
+      '<p>管理页：<a href="' + A + '" target="_blank" rel="noopener">' + A + '</a></p>' +
+      '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
+      '<h4>关于我的表情包</h4>' +
+      '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261029 · 管理页 v9<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+  }
+
+  function openTutorial() {
+    $('#tutorialMask').hidden = false;
+    showTutorial('guide');
+  }
+
+  function closeTutorial() {
+    $('#tutorialMask').hidden = true;
+  }
+
+  function showTutorial(key) {
+    $$('#tutorialTabs button').forEach((b) => b.classList.toggle('is-active', b.dataset.tutorial === key));
+    const body = $('#tutorialBody');
+    body.innerHTML = tutorialContent(key);
+    body.scrollTop = 0;
+  }
+
+  function bindTutorial() {
+    $('#tutorialBtn').addEventListener('click', openTutorial);
+    $('#tutorialClose').addEventListener('click', closeTutorial);
+    $('#tutorialClose2').addEventListener('click', closeTutorial);
+    $('#tutorialMask').addEventListener('click', (e) => { if (e.target.id === 'tutorialMask') closeTutorial(); });
+    $$('#tutorialTabs button').forEach((b) => b.addEventListener('click', () => showTutorial(b.dataset.tutorial)));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#tutorialMask').hidden) closeTutorial(); });
+  }
+
   function bind() {
     $('#loginBtn').addEventListener('click', () => {
       const v = $('#tokenInput').value.trim();
@@ -944,6 +1124,7 @@
 
   function boot() {
     bind();
+    bindTutorial();
     initColors();
     showLogin('');
     const hash = location.hash.replace(/^#/, '');
