@@ -2310,7 +2310,14 @@
         '<li>Token 等同于仓库写权限，不要发到群里、截图或公开页面。</li>' +
         '<li>怀疑泄露时：GitHub → Settings → Developer settings → Personal access tokens → 删除旧 Token，新建一个，更新本机 <code>data\\github.json</code>。</li>' +
         '<li>删除 Token 不会影响已经上线的公网页，只会让管理页/发布无法再写入。</li>' +
-        '</ul>';
+        '</ul>' +
+        '<h4>管理入口 / 忘记 Token</h4>' +
+        '<div class="settings-admin-actions">' +
+        '<a class="btn btn-primary btn-sm" href="' + A + '" target="_blank" rel="noopener">打开管理页</a>' +
+        '<button class="btn btn-sm" type="button" id="settingsAdminHelp">获取管理权限 / 忘记 Token</button>' +
+        '</div>' +
+        '<p>管理 Token 不会显示在公网页。忘记 Token 时，可以点上面的按钮走咨询流程；正确密码只会告诉你 Token 在本机的位置和生成新 Token 的入口，<strong>不会把 Token 显示出来</strong>。</p>' +
+        '<div class="settings-tip is-info">' + ico('info') + '<span>为什么不能显示 Token？公网页是公开静态页面，Token 一旦写进代码，任何人都能从源码或开发者工具拿走，后果是整个仓库和数据可能被删除或篡改。</span></div>';
     }
     if (key === 'faq') {
       return '<h4>保存后公网页没变化？</h4>' +
@@ -2350,7 +2357,9 @@
       '<p>本地版：<a href="' + TUTORIAL_URLS.local + '" target="_blank" rel="noopener">' + TUTORIAL_URLS.local + '</a></p>' +
       '<h4>设计说明</h4>' +
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261026 · 管理页 v8<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<h4>关于我的表情包</h4>' +
+      '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261027 · 管理页 v8<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -2372,10 +2381,72 @@
     function show(key) {
       tabs.forEach((b) => b.classList.toggle('is-active', b.dataset.settings === key));
       box.innerHTML = settingsContent(key);
-      box.scrollTop = 0;
+      const sc = box.closest('.modal-body');
+      if (sc) sc.scrollTop = 0;
+      bindSettingsActions(box);
     }
     tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.settings)));
     show('guide');
+  }
+
+  function bindSettingsActions(box) {
+    const help = $('#settingsAdminHelp', box);
+    if (help) help.addEventListener('click', openAdminHelp);
+  }
+
+  function openAdminHelp() {
+    let attempts = 0;
+    const A = TUTORIAL_URLS.admin;
+    const body = '<div class="settings-doc">' +
+      '<p>管理 Token 不会显示在公网页。这里只能验证咨询密码，查看 Token 在本机的位置和管理入口。</p>' +
+      '<div class="settings-tip is-info">' + ico('info') + '<span>Token 是仓库写权限，公开页面绝不能放；否则任何人都能拿走并删除数据。</span></div>' +
+      '<div class="field"><label class="field-label" for="helpPass">咨询密码</label>' +
+      '<input class="input" id="helpPass" type="password" autocomplete="off" placeholder="输入咨询密码"></div>' +
+      '<div class="field-msg" id="helpMsg"></div>' +
+      '<div id="helpResult"></div>' +
+      '<div class="settings-tip" id="helpContact" hidden>' + ico('alert') + '<span>密码错误次数过多。请加管理员微信获取密码 / 管理权限：<a href="tel:13868214913">13868214913</a>（微信同号）。</span></div>' +
+      '</div>';
+    const modal = openModal({
+      title: '管理权限 / 忘记 Token',
+      desc: '验证咨询密码，查看本机 Token 位置；不会显示 Token',
+      size: 'sm',
+      body: body,
+      footer: '<button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="helpOk">验证</button>'
+    });
+    const input = $('#helpPass', modal.el);
+    const msg = $('#helpMsg', modal.el);
+    const ok = $('#helpOk', modal.el);
+    const result = $('#helpResult', modal.el);
+    const contact = $('#helpContact', modal.el);
+    function fail() {
+      attempts++;
+      if (attempts >= 3) {
+        msg.textContent = '密码错误次数过多，已锁定。';
+        msg.style.color = 'var(--fail)';
+        contact.hidden = false;
+        input.disabled = true;
+        ok.disabled = true;
+      } else {
+        msg.textContent = '密码错误，还可尝试 ' + (3 - attempts) + ' 次。';
+        msg.style.color = 'var(--fail)';
+      }
+      input.select();
+    }
+    function verify() {
+      if (input.value.trim() !== '00000000') { fail(); return; }
+      attempts = 0;
+      msg.textContent = '密码正确。Token 不在公网页，无法在这里显示。';
+      msg.style.color = 'var(--ok)';
+      contact.hidden = true;
+      result.innerHTML = '<div class="settings-tip is-info">' + ico('info') + '<span>请在自己电脑上打开管理页：<a href="' + A + '" target="_blank" rel="noopener">' + A + '</a></span></div>' +
+        '<p>Token 在本机 <code>C:\\效果图网址\\data\\github.json</code>；桌面「效果图管理」快捷方式会自动登录。</p>' +
+        '<p>需要新的 Token：<a href="https://github.com/settings/tokens/new?scopes=repo&description=yingxiangtu-deploy" target="_blank" rel="noopener">去 GitHub 生成</a>（需要 GitHub 登录和密码）。</p>';
+      input.disabled = true;
+      ok.disabled = true;
+    }
+    ok.addEventListener('click', verify);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') verify(); });
+    setTimeout(() => input.focus(), 80);
   }
 
   function bindEvents() {
