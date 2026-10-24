@@ -146,6 +146,7 @@
     padding: 10px 20px 16px; border-top: 1px solid var(--line);
   }
   .adm-tutorial-body .settings-sticker { width: 140px; height: 140px; }
+  .is-embedded .adm-actions a[href="./"] { display: none; }
   .adm-board-prefs { display: flex; flex-direction: column; gap: 7px; margin: 4px 0 10px; }
   .adm-board-prefs label {
     display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2);
@@ -619,6 +620,9 @@
       updateStats();
       setSaveStatus('已保存，刷新公网页即可看到', 'ok');
       setStatus('已保存；公网页刷新后生效', 'ok');
+      if (window.parent !== window) {
+        try { window.parent.postMessage({ type: 'yxg-admin-saved', updatedAt: lib.updatedAt }, location.origin); } catch (e) {}
+      }
     } catch (e) {
       if (e.status === 409) {
         setSaveStatus('公网页已被更新，请点「刷新数据」后重试', 'err');
@@ -936,7 +940,7 @@
   }
 
   function tutorialContent(key) {
-    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=10';
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=11';
     const P = 'https://togetherggg.github.io/yingxiangtu/';
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
@@ -1045,7 +1049,7 @@
       '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261030 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261040 · 管理页 v11<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openTutorial() {
@@ -1184,6 +1188,7 @@
   }
 
   function boot() {
+    if (window.self !== window.top) document.body.classList.add('is-embedded');
     bind();
     bindTutorial();
     bindAdminTheme();
