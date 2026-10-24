@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/app.css?v=20261044">
+<link rel="stylesheet" href="assets/css/app.css?v=20261046">
 </head>
 <body>
 
@@ -203,6 +203,16 @@
   </div>
 </div>
 
+<div class="update-notice" id="updateNotice" hidden>
+  <div class="update-notice-main">
+    <b id="updateNoticeTitle">内容已更新</b>
+    <span id="updateNoticeText"></span>
+  </div>
+  <button class="btn btn-primary btn-sm" type="button" id="updateNoticeConfirm">确认，不再提示</button>
+  <button class="update-notice-close" type="button" id="updateNoticeClose" aria-label="关闭提示">×</button>
+  <i class="update-notice-progress" id="updateNoticeProgress" aria-hidden="true"></i>
+</div>
+
 <div class="admin-mode" id="adminMode" hidden>
   <div class="admin-mode-bar">
     <div class="admin-mode-title"><b>管理模式</b><span>保存后公网页自动更新 · 关闭即回公网页</span></div>
@@ -223,6 +233,6 @@
 <script src="assets/js/security.js"></script>
 <script src="assets/js/link-safety.js"></script>
 <script src="assets/js/qrcode.min.js"></script>
-<script src="assets/js/app.js?v=20261045"></script>
+<script src="assets/js/app.js?v=20261046"></script>
 </body>
 </html>
