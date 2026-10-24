@@ -1403,3 +1403,17 @@ button, .btn, .icon-btn, .card, .style-tile, .wallpaper-card { -webkit-tap-highl
   from { opacity: .82; transform: translateY(3px); }
   to { opacity: 1; transform: none; }
 }
+.admin-mode { animation: adminModeIn .24s var(--ease-silk) both; }
+.admin-mode-loading {
+  position: absolute; top: 46px; left: 0; right: 0; bottom: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: #080a0f; color: #6d7688; font-size: 12px; letter-spacing: .02em;
+  transition: opacity .3s var(--ease-silk); pointer-events: none;
+}
+.admin-mode-loading[hidden] { display: none; }
+.admin-spin {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .14); border-top-color: #22d3ee;
+  animation: spin .7s linear infinite;
+}
+@keyframes adminModeIn { from { opacity: 0; } to { opacity: 1; } }
