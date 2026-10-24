@@ -1416,3 +1416,39 @@ button, .btn, .icon-btn, .card, .style-tile, .wallpaper-card { -webkit-tap-highl
   animation: spin .7s linear infinite;
 }
 @keyframes adminModeIn { from { opacity: 0; } to { opacity: 1; } }
+/* 主页更新提示：显示 5 秒自动收起；点确认后不再提示 */
+.update-notice {
+  position: fixed; top: 78px; left: 50%; z-index: 75;
+  width: min(640px, calc(100vw - 24px));
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px 12px 14px;
+  border: 1px solid var(--line-2); border-radius: 14px;
+  background: var(--card); box-shadow: var(--shadow);
+  transform: translateX(-50%);
+}
+.update-notice[hidden] { display: none; }
+.update-notice.is-show { animation: noticeIn .32s var(--ease-silk) both; }
+.update-notice-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.update-notice-main b { font-size: 12.5px; color: var(--text); font-weight: 700; }
+.update-notice-main span { font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.update-notice .btn { flex: 0 0 auto; height: 30px; font-size: 11px; white-space: nowrap; }
+.update-notice-close {
+  width: 26px; height: 26px; flex: 0 0 auto; border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-3); font-size: 17px; line-height: 1; cursor: pointer;
+}
+.update-notice-close:hover { background: var(--panel-2); color: var(--text); }
+.update-notice-progress {
+  position: absolute; left: 12px; right: 12px; bottom: 5px; height: 2px;
+  border-radius: 2px; background: var(--grad); transform-origin: left;
+  animation: noticeProgress 5s linear forwards;
+}
+@keyframes noticeIn {
+  from { opacity: 0; transform: translate(-50%, -8px) scale(.985); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes noticeProgress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (max-width: 620px) {
+  .update-notice { top: 72px; align-items: flex-start; flex-wrap: wrap; }
+  .update-notice-main { flex-basis: calc(100% - 34px); }
+  .update-notice .btn { margin-left: auto; }
+}
