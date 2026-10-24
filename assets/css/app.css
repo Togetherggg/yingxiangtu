@@ -1359,3 +1359,47 @@ html.theme-anim *::after {
 .wallpaper-add-wrap > summary::-webkit-details-marker { display: none; }
 .wallpaper-add-wrap[open] > summary { color: var(--text); border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .wallpaper-add-wrap .wallpaper-add { border: 0; background: transparent; margin: 0; padding: 0 0 10px; }
+/* 公网页内置管理模式 */
+.admin-entry {
+  height: 34px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+  color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: background .2s, color .2s, border-color .2s, transform .18s var(--ease-pop);
+}
+.admin-entry:hover { background: var(--panel-2); color: var(--text); border-color: var(--line-2); transform: translateY(-1px); }
+.admin-entry:active { transform: scale(.96); }
+.admin-entry .ico { width: 15px; height: 15px; }
+
+.admin-mode {
+  position: fixed; inset: 0; z-index: 400; display: flex; flex-direction: column;
+  background: #080a0f; color: #eef1f8;
+}
+.admin-mode[hidden] { display: none; }
+.admin-mode-bar {
+  height: 46px; flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding: 0 14px 0 18px; background: #0d1017; border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.admin-mode-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.admin-mode-title b { font-size: 13px; color: #eef1f8; letter-spacing: .02em; }
+.admin-mode-title span { font-size: 10.5px; color: #6d7688; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-mode-bar .btn { margin-left: auto; height: 30px; font-size: 11.5px; flex: 0 0 auto; }
+.admin-mode iframe { flex: 1 1 auto; width: 100%; height: 100%; border: 0; background: #080a0f; display: block; }
+body.admin-mode-open { overflow: hidden; }
+
+@media (max-width: 760px) {
+  .admin-entry span { display: none; }
+  .admin-entry { width: 34px; padding: 0; justify-content: center; }
+  .admin-mode-title span { display: none; }
+}
+
+/* 更稳的滚动与刷新 */
+.main { overscroll-behavior: contain; scrollbar-gutter: stable; -webkit-overflow-scrolling: touch; }
+.sidebar { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.wallpaper-layer, .wallpaper-img { will-change: opacity, transform; }
+.wallpaper-layer.is-on ~ .app .db-card { backdrop-filter: none; }
+button, .btn, .icon-btn, .card, .style-tile, .wallpaper-card { -webkit-tap-highlight-color: transparent; }
+.content.soft-update { animation: softUpdate .42s var(--ease-silk) both; }
+@keyframes softUpdate {
+  from { opacity: .82; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
