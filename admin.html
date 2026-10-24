@@ -377,6 +377,7 @@
   const FILE = 'data/library.json';
   const API = 'https://api.github.com/repos/' + OWNER + '/' + REPO;
   const LS_TOKEN = 'yxg.admin.token.v1';
+  const EMBED_FOCUS = new URLSearchParams(location.search).get('focus') || '';
   const PALETTE = ['#C9A227','#B08968','#8A7CFF','#4FC3F7','#5FD3B4','#D9A066','#F2B8B5','#F2D8A8','#C3A6E8','#9AA7B8','#A8B5A2','#D7E1EA'];
   const SITES = { 'vr.justeasy.cn':'建E全景','vr.3d66.com':'3D66全景','vr.zhiouwang.com':'知欧全景','vr.1miba.com':'米吧全景','vr.shinewonder.com':'ShineWonder' };
   const EVENT_COLORS = { '量房': '#4FC3F7', '方案': '#8A7CFF', '施工': '#F2B8B5', '客户': '#5FD3B4', '其他': '#9AA7B8' };
@@ -565,6 +566,16 @@
     $('#logoutBtn').hidden = false;
   }
 
+  function focusEmbedTarget() {
+    if (!EMBED_FOCUS) return;
+    setTimeout(() => {
+      const target = EMBED_FOCUS === 'add' ? $('#addUrl') : EMBED_FOCUS === 'schedule' ? $('#evTitle') : null;
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.focus({ preventScroll: true });
+    }, 320);
+  }
+
   async function loadData() {
     setStatus('读取数据…');
     const repo = await api('GET', '');
@@ -583,6 +594,7 @@
     render();
     setStatus('已连接 ' + repo.full_name + ' · 数据已载入', 'ok');
     setSaveStatus('已与公网页同步', 'ok');
+    focusEmbedTarget();
   }
 
   async function login() {
@@ -940,7 +952,7 @@
   }
 
   function tutorialContent(key) {
-    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=11';
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=12';
     const P = 'https://togetherggg.github.io/yingxiangtu/';
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
@@ -1049,7 +1061,7 @@
       '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261040 · 管理页 v11<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261042 · 管理页 v12<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openTutorial() {
