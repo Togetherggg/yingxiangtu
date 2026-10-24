@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/app.css?v=20261042">
+<link rel="stylesheet" href="assets/css/app.css?v=20261044">
 </head>
 <body>
 
@@ -63,6 +63,29 @@
   <div class="wallpaper-img" id="wallpaperB"></div>
   <div class="wallpaper-shade"></div>
 </div>
+<script>
+(function () {
+  try {
+    var prefs = JSON.parse(localStorage.getItem('yxg.wallpaper.prefs') || '{}');
+    if (prefs.enabled === false) return;
+    var custom = JSON.parse(localStorage.getItem('yxg.wallpapers.custom') || '[]');
+    if (!Array.isArray(custom)) custom = [];
+    var selected = prefs.selected || 'w1';
+    var found = custom.filter(function (w) { return w && w.id === selected && w.thumb; })[0];
+    var file = /^w[1-9]$/.test(selected) ? selected : 'w1';
+    var thumb = found ? found.thumb : 'assets/wallpapers/' + file + '-thumb.jpg';
+    var layer = document.getElementById('wallpaperLayer');
+    var img = document.getElementById('wallpaperA');
+    if (!layer || !img) return;
+    img.style.transition = 'none';
+    layer.style.transition = 'none';
+    img.style.backgroundImage = 'url("' + thumb + '")';
+    img.classList.add('is-visible');
+    layer.classList.add('is-on');
+    setTimeout(function () { img.style.transition = ''; layer.style.transition = ''; }, 650);
+  } catch (e) {}
+})();
+</script>
 
 <div class="bg-glow" aria-hidden="true">
   <span class="glow glow-a"></span><span class="glow glow-b"></span><span class="glow glow-c"></span>
@@ -199,6 +222,6 @@
 <script>window.__STATIC_LIBRARY_URL__='data/library.json';</script>
 <script src="assets/js/security.js"></script>
 <script src="assets/js/qrcode.min.js"></script>
-<script src="assets/js/app.js?v=20261043"></script>
+<script src="assets/js/app.js?v=20261044"></script>
 </body>
 </html>
