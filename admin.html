@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com https://raw.githubusercontent.com https://togetherggg.github.io https://api.open-meteo.com https://geocoding-api.open-meteo.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('yxg.admin.theme')||'dark';}catch(e){}</script>
 <meta name="robots" content="noindex,nofollow">
 <title>效果图网址 · 管理后台</title>
@@ -180,7 +182,15 @@
     .adm-savebar { padding: 10px 14px; }
     .adm-savebar .status { display: none; }
   }
-</style>
+  .adm-security .sec-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 4px 0 10px; }
+  .sec-stat { padding: 8px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+  .sec-stat b { display: block; font-size: 17px; color: var(--text); line-height: 1.2; }
+  .sec-stat span { font-size: 9.5px; color: var(--text-3); }
+  .sec-events { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow: auto; }
+  .sec-event { display: flex; align-items: baseline; gap: 6px; font-size: 10px; color: var(--text-3); }
+  .sec-event b { color: var(--warn); font-weight: 600; flex: 0 0 auto; }
+  .sec-event em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sec-empty { font-size: 10.5px; color: var(--text-3); padding: 6px 0; }\n</style>
 </head>
 <body>
 
@@ -317,6 +327,17 @@
       </div>
 
       <div class="adm-col">
+        <div class="adm-card adm-security">
+          <h2>安全中心 <span class="hint">本机浏览器拦截记录</span></h2>
+          <div class="sec-stats" id="secStats"></div>
+          <div class="sec-events" id="secEvents"></div>
+          <div class="adm-row" style="margin-top:10px">
+            <button class="btn btn-sm" type="button" id="secRefresh">刷新</button>
+            <button class="btn btn-sm" type="button" id="secClear">清空记录</button>
+          </div>
+          <p class="adm-tip">这里统计当前浏览器拦截的异常输入/文件，不是全站攻击；真正的 WAF / 全站攻击统计需要 Cloudflare 或后端。</p>
+        </div>
+
         <div class="adm-card">
           <h2>已有链接 <span class="hint" id="linkCount"></span></h2>
           <div class="adm-list-head">
@@ -369,6 +390,7 @@
   </div>
 </div>
 
+<script src="assets/js/security.js"></script>
 <script>
 (function () {
   'use strict';
@@ -488,7 +510,34 @@
     renderLinks();
     renderEvents();
     renderBoardPrefs();
+    renderSecurity();
     updateStats();
+  }
+
+  function renderSecurity() {
+    const box = $('#secStats');
+    const list = $('#secEvents');
+    if (!box || !list) return;
+    const S = window.YXGSecurity;
+    if (!S) {
+      box.innerHTML = '<div class="sec-empty">安全模块未加载</div>';
+      list.innerHTML = '';
+      return;
+    }
+    const st = S.stats();
+    const count = (k) => st.byType[k] || 0;
+    const last7 = st.events.filter((e) => Date.now() - e.t < 7 * 24 * 3600 * 1000).length;
+    const cells = [
+      ['总拦截', st.total], ['今日', st.today], ['近 7 天', last7],
+      ['登录失败', count('login')], ['非法链接', count('bad_url')], ['非法文件', count('bad_file') + count('oversize')],
+      ['CSP 拦截', count('csp')], ['频率拦截', count('rate')], ['其他', count('blocked')]
+    ];
+    box.innerHTML = cells.map(([label, n]) => '<div class="sec-stat"><b>' + n + '</b><span>' + label + '</span></div>').join('');
+    const labels = { bad_url: '非法链接', bad_file: '非法文件', oversize: '超大文件', rate: '频率拦截', login: '登录失败', csp: 'CSP 拦截', blocked: '其他' };
+    list.innerHTML = st.events.slice(0, 8).map((e) => {
+      const when = new Date(e.t).toLocaleString('zh-CN', { hour12: false });
+      return '<div class="sec-event"><b>' + esc(labels[e.type] || e.type) + '</b><em>' + esc(when + ' · ' + e.detail) + '</em></div>';
+    }).join('') || '<div class="sec-empty">暂无拦截记录</div>';
   }
 
   function renderLinks() {
@@ -607,12 +656,18 @@
 
   async function login() {
     if (!token) { showLogin(''); return; }
+    if (window.YXGSecurity && !YXGSecurity.rateLimit('admin-login', 5, 5 * 60 * 1000)) {
+      YXGSecurity.log('rate', 'admin-login');
+      showLogin('尝试过于频繁，请 5 分钟后再试');
+      return;
+    }
     $('#loginBtn').disabled = true;
     $('#loginBtn').textContent = '验证中…';
     try {
       await loadData();
       localStorage.setItem(LS_TOKEN, token);
     } catch (e) {
+      if (window.YXGSecurity) YXGSecurity.log('login', e.status ? ('HTTP ' + e.status) : String(e.message || '登录失败'));
       showLogin(e.status === 401 ? 'Token 无效或已过期' : (e.status === 404 ? 'Token 没有这个仓库的权限' : ('读取失败：' + e.message)));
     } finally {
       $('#loginBtn').disabled = false;
@@ -715,7 +770,23 @@
     if (!/^image\/(png|jpeg|webp)$/.test(file.type || '')) {
       statusEl.textContent = '请选择 PNG / JPG / WEBP 图片';
       statusEl.style.color = 'var(--warn)';
+      if (window.YXGSecurity) YXGSecurity.log('bad_file', 'MIME ' + (file.type || 'unknown'));
       return;
+    }
+    if (window.YXGSecurity) {
+      if (!YXGSecurity.rateLimit('cover-upload', 10, 60 * 1000)) {
+        statusEl.textContent = '上传太频繁，请稍后再试';
+        statusEl.style.color = 'var(--warn)';
+        YXGSecurity.log('rate', 'cover-upload');
+        return;
+      }
+      const check = await YXGSecurity.isImageFile(file, 8 * 1024 * 1024);
+      if (!check.ok) {
+        statusEl.textContent = check.reason;
+        statusEl.style.color = 'var(--warn)';
+        YXGSecurity.log('bad_file', check.reason + ' ' + file.name);
+        return;
+      }
     }
     statusEl.textContent = '正在压缩图片…';
     statusEl.style.color = 'var(--text-3)';
@@ -747,8 +818,17 @@
 
   function addLink(e) {
     e.preventDefault();
+    if (window.YXGSecurity && !YXGSecurity.rateLimit('add-link', 20, 60 * 1000)) {
+      setStatus('操作太频繁，请稍后再试', 'warn');
+      YXGSecurity.log('rate', 'add-link');
+      return;
+    }
     const parsed = normalizeUrl($('#addUrl').value);
-    if (!parsed) { setStatus('链接格式不正确', 'err'); return; }
+    if (!parsed) {
+      setStatus('链接格式不正确', 'err');
+      if (window.YXGSecurity) YXGSecurity.log('bad_url', $('#addUrl').value);
+      return;
+    }
     const url = parsed.href;
     if (lib.links.some((l) => l.url === url)) { setStatus('这条链接已经存在', 'warn'); return; }
     const cat = $('#addCat').value || (lib.categories[0] && lib.categories[0].id);
@@ -960,7 +1040,7 @@
   }
 
   function tutorialContent(key) {
-    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=12';
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=13';
     const P = 'https://togetherggg.github.io/yingxiangtu/';
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
@@ -1069,7 +1149,7 @@
       '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261042 · 管理页 v12<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261043 · 管理页 v13<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openTutorial() {
@@ -1135,6 +1215,12 @@
     $('#refreshBtn').addEventListener('click', reloadData);
     $('#reloadBtn').addEventListener('click', reloadData);
     $('#saveBtn').addEventListener('click', save);
+    $('#secRefresh').addEventListener('click', renderSecurity);
+    $('#secClear').addEventListener('click', () => {
+      if (!confirm('清空本机浏览器里的安全拦截记录？')) return;
+      if (window.YXGSecurity) YXGSecurity.clear();
+      renderSecurity();
+    });
     $('#addLinkForm').addEventListener('submit', addLink);
     $('#coverFile').addEventListener('change', function (e) {
       const f = e.target.files && e.target.files[0];
