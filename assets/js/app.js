@@ -3262,6 +3262,7 @@
     bindAdminMode();
     initWallpaper();
     renderContent(false);
+    maybeShowUpdateNotice();
 
     let lib = null;
     let needSave = false;
