@@ -2501,7 +2501,7 @@
 
   const TUTORIAL_URLS = {
     public: 'https://togetherggg.github.io/yingxiangtu/',
-    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=12',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=13',
     local: 'http://127.0.0.1:51888/'
   };
 
@@ -2726,7 +2726,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261042 · 管理页 v12<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261043 · 管理页 v13<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -2817,13 +2817,35 @@
     });
     const addBtn = $('#wallpaperAdd', box);
     if (addBtn) addBtn.addEventListener('click', async () => {
+      const S = window.YXGSecurity;
       const msg = $('#wallpaperAddMsg', box);
-      const url = ($('#wallpaperUrl', box).value || '').trim();
+      let url = ($('#wallpaperUrl', box).value || '').trim();
       const title = ($('#wallpaperTitle', box).value || '').trim().slice(0, 30) || '自定义壁纸';
       const theme = $('#wallpaperThemeNew', box).value;
       const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+      if (S && !S.rateLimit('wallpaper-add', 10, 60 * 1000)) {
+        if (msg) msg.textContent = '操作太频繁，请稍后再试。';
+        S.log('rate', 'wallpaper-add');
+        return;
+      }
       if (!file && !url) { if (msg) msg.textContent = '请填写图片 URL 或上传本地图片。'; return; }
-      if (!file && !/^https?:\/\//i.test(url)) { if (msg) msg.textContent = '图片 URL 需要以 http:// 或 https:// 开头。'; return; }
+      if (!file) {
+        const safe = S ? S.safeUrl(url) : url;
+        if (!safe) {
+          if (msg) msg.textContent = '图片 URL 需要是有效的 http:// 或 https:// 地址。';
+          if (S) S.log('bad_url', url);
+          return;
+        }
+        url = safe;
+      }
+      if (file && S) {
+        const check = await S.isImageFile(file, 8 * 1024 * 1024);
+        if (!check.ok) {
+          if (msg) msg.textContent = check.reason;
+          S.log('bad_file', check.reason + ' ' + file.name);
+          return;
+        }
+      }
       addBtn.disabled = true;
       if (msg) msg.textContent = '处理中…';
       try {
@@ -2920,7 +2942,7 @@
     const loading = $('#adminModeLoading');
     if (loading) loading.hidden = false;
     frame.onload = () => { if (loading) loading.hidden = true; };
-    frame.src = 'admin.html?v=12&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
+    frame.src = 'admin.html?v=13&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
     mode.hidden = false;
     document.body.classList.add('admin-mode-open');
     setTimeout(() => { const btn = $('#adminModeClose'); if (btn) btn.focus(); }, 60);
@@ -2988,9 +3010,11 @@
         contact.hidden = false;
         input.disabled = true;
         ok.disabled = true;
+        if (window.YXGSecurity) YXGSecurity.log('rate', 'help-password-locked');
       } else {
         msg.textContent = '密码错误，还可尝试 ' + (3 - attempts) + ' 次。';
         msg.style.color = 'var(--fail)';
+        if (window.YXGSecurity) YXGSecurity.log('login', 'help-password');
       }
       input.select();
     }
