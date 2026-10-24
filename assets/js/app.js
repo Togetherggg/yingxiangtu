@@ -377,8 +377,32 @@
       state.lib = remote;
       state.baseUpdatedAt = raw.updatedAt;
       renderAll(false);
+      softUpdateContent();
       toast(state.readOnly ? '分享内容已更新' : '已同步其他设备上的修改', { duration: 2200 });
     } catch (e) { /* 静默失败，下一次再试 */ }
+  }
+
+  function softUpdateContent() {
+    const content = $('#content');
+    if (!content) return;
+    content.classList.remove('soft-update');
+    void content.offsetWidth;
+    content.classList.add('soft-update');
+    clearTimeout(softUpdateContent._t);
+    softUpdateContent._t = setTimeout(() => content.classList.remove('soft-update'), 520);
+  }
+
+  async function refreshPublicLibrary() {
+    if (!(state.mode === 'public' || state.mode === 'api')) return;
+    try {
+      const lib = await loadData();
+      if (!lib) return;
+      state.lib = lib;
+      state.ready = true;
+      state.baseUpdatedAt = lib.updatedAt || state.baseUpdatedAt;
+      renderAll(false);
+      softUpdateContent();
+    } catch (e) { /* 静默，下一次再试 */ }
   }
 
   function markSaved() {
@@ -2474,7 +2498,7 @@
 
   const TUTORIAL_URLS = {
     public: 'https://togetherggg.github.io/yingxiangtu/',
-    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=10',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=11',
     local: 'http://127.0.0.1:51888/'
   };
 
@@ -2646,7 +2670,8 @@
         '</ul>' +
         '<h4>管理入口 / 忘记 Token</h4>' +
         '<div class="settings-admin-actions">' +
-        '<a class="btn btn-primary btn-sm" href="' + A + '" target="_blank" rel="noopener">打开管理页</a>' +
+        '<button class="btn btn-primary btn-sm" type="button" id="settingsAdminMode">进入管理模式</button>' +
+        '<a class="btn btn-sm" href="' + A + '" target="_blank" rel="noopener">新窗口打开</a>' +
         '<button class="btn btn-sm" type="button" id="settingsAdminHelp">获取管理权限 / 忘记 Token</button>' +
         '</div>' +
         '<p>管理 Token 不会显示在公网页。忘记 Token 时，可以点上面的按钮走咨询流程；正确密码只会告诉你 Token 在本机的位置和生成新 Token 的入口，<strong>不会把 Token 显示出来</strong>。</p>' +
@@ -2692,7 +2717,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261039 · 管理页 v10<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261040 · 管理页 v11<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -2875,6 +2900,48 @@
   function bindSettingsActions(box) {
     const help = $('#settingsAdminHelp', box);
     if (help) help.addEventListener('click', openAdminHelp);
+    const modeBtn = $('#settingsAdminMode', box);
+    if (modeBtn) modeBtn.addEventListener('click', openAdminMode);
+  }
+
+  function openAdminMode() {
+    const mode = $('#adminMode');
+    const frame = $('#adminFrame');
+    if (!mode || !frame) return;
+    frame.src = 'admin.html?v=11&embed=1&t=' + Date.now();
+    mode.hidden = false;
+    document.body.classList.add('admin-mode-open');
+    setTimeout(() => { const btn = $('#adminModeClose'); if (btn) btn.focus(); }, 60);
+  }
+
+  function closeAdminMode() {
+    const mode = $('#adminMode');
+    const frame = $('#adminFrame');
+    if (!mode || mode.hidden) return;
+    mode.hidden = true;
+    document.body.classList.remove('admin-mode-open');
+    if (frame) frame.src = 'about:blank';
+    if (state.mode === 'public') refreshPublicLibrary();
+    else if (state.mode === 'api') syncFromServer();
+  }
+
+  function bindAdminMode() {
+    const open = $('#adminModeBtn');
+    if (open) open.addEventListener('click', openAdminMode);
+    const close = $('#adminModeClose');
+    if (close) close.addEventListener('click', closeAdminMode);
+    const mode = $('#adminMode');
+    if (!mode) return;
+    window.addEventListener('message', (e) => {
+      if (e.origin !== location.origin) return;
+      if (e.data && e.data.type === 'yxg-admin-saved') {
+        if (state.mode === 'public') refreshPublicLibrary();
+        else if (state.mode === 'api') syncFromServer();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !mode.hidden) closeAdminMode();
+    });
   }
 
   function openAdminHelp() {
@@ -3088,6 +3155,7 @@
     }
 
     bindEvents();
+    bindAdminMode();
     initWallpaper();
     renderContent(false);
 
