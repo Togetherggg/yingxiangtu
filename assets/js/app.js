@@ -61,6 +61,14 @@
     lastError: null
   };
 
+  const UPDATE_NOTICE = {
+    id: '2026-10-24-v46',
+    title: '内容已更新',
+    text: '管理入口合并 · 艺术壁纸 · 安全中心 · 链接安全检查'
+  };
+  let updateNoticeTimer = null;
+  let updateNoticeShown = false;
+
   /* ---------------------------------------------------------------- 数据 */
   const SEED = window.SEED_LIBRARY || null;
   const SEED_VERSION = (SEED && Number(SEED.version)) || 1;
@@ -946,6 +954,48 @@
     loadBoardWeather();
   }
 
+  function maybeShowUpdateNotice() {
+    if (updateNoticeShown) return;
+    if (state.scope !== 'home' || state.query.trim()) return;
+    try {
+      if (localStorage.getItem('yxg.update.notice.v1') === UPDATE_NOTICE.id) return;
+    } catch (e) {}
+    updateNoticeShown = true;
+    showUpdateNotice();
+  }
+
+  function showUpdateNotice() {
+    const el = $('#updateNotice');
+    if (!el) return;
+    const title = $('#updateNoticeTitle');
+    const text = $('#updateNoticeText');
+    if (title) title.textContent = UPDATE_NOTICE.title;
+    if (text) text.textContent = UPDATE_NOTICE.text;
+    el.hidden = false;
+    el.classList.remove('is-show');
+    const bar = $('#updateNoticeProgress');
+    if (bar) {
+      bar.style.animation = 'none';
+      void bar.offsetWidth;
+      bar.style.animation = '';
+    }
+    void el.offsetWidth;
+    el.classList.add('is-show');
+    clearTimeout(updateNoticeTimer);
+    updateNoticeTimer = setTimeout(() => hideUpdateNotice(false), 5000);
+  }
+
+  function hideUpdateNotice(dismiss) {
+    const el = $('#updateNotice');
+    clearTimeout(updateNoticeTimer);
+    if (!el) return;
+    el.classList.remove('is-show');
+    setTimeout(() => { if (!el.classList.contains('is-show')) el.hidden = true; }, 280);
+    if (dismiss) {
+      try { localStorage.setItem('yxg.update.notice.v1', UPDATE_NOTICE.id); } catch (e) {}
+    }
+  }
+
   function renderHome() {
     const cats = sortedCategories();
     const links = state.lib.links;
@@ -980,6 +1030,7 @@
     bindDesignerBoard();
     const addBtn = $('#tileAddCat');
     if (addBtn) addBtn.addEventListener('click', () => openCategoryForm(null));
+    maybeShowUpdateNotice();
   }
 
   function highlight(text) {
@@ -1046,6 +1097,7 @@
 
   function renderContent(animate) {
     const content = $('#content');
+    if (!(state.scope === 'home' && !state.query.trim())) hideUpdateNotice(false);
     if (!state.ready) {
       content.innerHTML = '<div class="skeleton-wrap">' + new Array(6).join('<div class="skeleton"></div>') + '</div>';
       return;
@@ -2735,7 +2787,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261045 · 管理页 v14<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261046 · 管理页 v14<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -3045,6 +3097,10 @@
   }
 
   function bindEvents() {
+    const updateConfirm = $('#updateNoticeConfirm');
+    if (updateConfirm) updateConfirm.addEventListener('click', () => hideUpdateNotice(true));
+    const updateClose = $('#updateNoticeClose');
+    if (updateClose) updateClose.addEventListener('click', () => hideUpdateNotice(false));
     $('#themeBtn').addEventListener('click', () => {
       const root = document.documentElement;
       root.classList.add('theme-anim');
