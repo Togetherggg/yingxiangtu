@@ -140,7 +140,7 @@
         type: ['量房', '方案', '施工', '客户', '其他'].indexOf(e.type) >= 0 ? e.type : '其他',
         note: String(e.note || '').slice(0, 160),
         done: !!e.done
-      })).filter((e) => e.title).slice(0, 500);
+      })).filter((e) => e.title && e.date >= localDateStr(new Date())).slice(0, 500);
     }
     if (raw.board && typeof raw.board === 'object') {
       ['schedule', 'weather', 'calendar', 'fengshui'].forEach((k) => {
@@ -2442,14 +2442,17 @@
         '<span class="schedule-type" style="color:' + color + ';border-color:' + color + '33;background:' + color + '12">' + esc(e.type) + '</span>' +
         '</div>';
     }).join('') : '<div class="life-loading">' + (dateFilter ? '这一天没有日程' : '还没有日程') + '</div>') + '</div>' +
-      '<div class="life-note">日程由管理页「设计师日程」维护；这里只读展示，量房 / 方案 / 施工 / 客户都能记录。</div>';
-    openModal({
+      '<div class="life-note">日程在管理模式「设计师日程」里维护；公网页只读展示，过期日程会自动清理。点下方「管理日程」进入管理模式添加或修改。</div>';
+    const modal = openModal({
       title: dateFilter ? '设计师日程 · ' + scheduleDateLabel(dateFilter) : '设计师日程',
       desc: '量房、方案、施工、客户与备忘',
       size: 'md',
       body: body,
-      footer: '<button class="btn" type="button" data-close>关闭</button>'
+      footer: (state.readOnly ? '<button class="btn btn-primary" type="button" id="scheduleManage">管理日程</button>' : '') +
+        '<button class="btn" type="button" data-close>关闭</button>'
     });
+    const manage = $('#scheduleManage', modal.el);
+    if (manage) manage.addEventListener('click', () => openAdminMode('schedule'));
   }
 
   function renderLifeSchedule(box) {
@@ -2466,7 +2469,7 @@
         '</div>';
     }).join('') : '<div class="life-loading">还没有日程</div>';
     box.innerHTML = '<div class="schedule-list">' + body + '</div>' +
-      '<div class="life-note">日程在管理页「设计师日程」维护；这里只读展示。隐藏首页工作台后，仍可以在这里查看。</div>';
+      '<div class="life-note">日程在管理模式「设计师日程」里维护；公网页只读展示，过期日程会自动清理。点右上角「全部日程」可进入日程页并管理。</div>';
   }
 
   function openLifeModal(initialTab) {
@@ -2498,7 +2501,7 @@
 
   const TUTORIAL_URLS = {
     public: 'https://togetherggg.github.io/yingxiangtu/',
-    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=11',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=12',
     local: 'http://127.0.0.1:51888/'
   };
 
@@ -2593,6 +2596,8 @@
         '<li><strong>手机 / 微信</strong>：点右上角手机图标，复制公网链接或扫码；把链接发到微信即可在手机打开。</li>' +
         '<li><strong>卡片操作</strong>：点卡片打开效果图网站；卡片上的复制按钮可以复制原始链接。</li>' +
         '</ol>' +
+        '<h4>添加效果图 / 日程</h4>' +
+        '<p>公网页右上角「添加链接」和日程里的「管理日程」会直接进入管理模式；需要 Token，保存后公网页自动更新。普通访客仍然只读，不能匿名修改。</p>' +
         '<h4>首页「设计师工作台」</h4>' +
         '<ul>' +
         '<li><strong>设计师日程</strong>：显示最近 4 条未完成日程；点「全部日程 →」看完整日程；日历上有圆点的日期表示当天有安排，点日期可看当天日程。</li>' +
@@ -2678,7 +2683,11 @@
         '<div class="settings-tip is-info">' + ico('info') + '<span>为什么不能显示 Token？公网页是公开静态页面，Token 一旦写进代码，任何人都能从源码或开发者工具拿走，后果是整个仓库和数据可能被删除或篡改。</span></div>';
     }
     if (key === 'faq') {
-      return '<h4>保存后公网页没变化？</h4>' +
+      return '<h4>公网页能直接添加效果图吗？</h4>' +
+        '<p>可以，点右上角「添加链接」会进入管理模式，需要 GitHub Token；登录一次后会记住。保存后公网页会自动更新；普通访客没有 Token，只能看。</p>' +
+        '<h4>日程过期会自动删除吗？</h4>' +
+        '<p>会。公网页会先隐藏过期日程，GitHub 每天还会自动清理一次；日程按日期计算，过了当天就不再显示。</p>' +
+        '<h4>保存后公网页没变化？</h4>' +
         '<p>先刷新公网页。数据通常几秒内生效；如果刚上传了新封面图，图片要等 GitHub Pages 部署约 1 分钟。仍不显示时按 <span class="settings-kbd">Ctrl</span> + <span class="settings-kbd">F5</span> 强制刷新。</p>' +
         '<h4>删除风格会把效果图删掉吗？</h4>' +
         '<p>不会。链接会移到「待分类」，图片文件也还在；公网页的待分类栏目可以继续看，管理页可以把链接移回其它风格。</p>' +
@@ -2717,7 +2726,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261041 · 管理页 v11<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261042 · 管理页 v12<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -2904,14 +2913,14 @@
     if (modeBtn) modeBtn.addEventListener('click', openAdminMode);
   }
 
-  function openAdminMode() {
+  function openAdminMode(focus) {
     const mode = $('#adminMode');
     const frame = $('#adminFrame');
     if (!mode || !frame) return;
     const loading = $('#adminModeLoading');
     if (loading) loading.hidden = false;
     frame.onload = () => { if (loading) loading.hidden = true; };
-    frame.src = 'admin.html?v=11&embed=1&t=' + Date.now();
+    frame.src = 'admin.html?v=12&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
     mode.hidden = false;
     document.body.classList.add('admin-mode-open');
     setTimeout(() => { const btn = $('#adminModeClose'); if (btn) btn.focus(); }, 60);
@@ -3013,7 +3022,10 @@
     $('#phoneBtn').addEventListener('click', openPhoneModal);
     $('#lifeBtn').addEventListener('click', openLifeModal);
     $('#settingsBtn').addEventListener('click', openSettingsModal);
-    $('#addBtn').addEventListener('click', () => openForm('add'));
+    $('#addBtn').addEventListener('click', () => {
+      if (state.readOnly) { openAdminMode('add'); return; }
+      openForm('add');
+    });
     $('#brandBtn').addEventListener('click', (e) => {
       e.preventDefault();
       setScope('home');
