@@ -237,6 +237,7 @@
             <div class="adm-field">
               <label for="addUrl">链接地址 *</label>
               <input class="input" id="addUrl" type="text" inputmode="url" placeholder="https://vr.justeasy.cn/view/…" autocomplete="off" spellcheck="false">
+              <div class="adm-tip" id="addUrlSafety" style="margin-top:5px"></div>
             </div>
             <div class="adm-field">
               <label for="addTitle">标题（可留空）</label>
@@ -391,6 +392,7 @@
 </div>
 
 <script src="assets/js/security.js"></script>
+<script src="assets/js/link-safety.js"></script>
 <script>
 (function () {
   'use strict';
@@ -529,11 +531,11 @@
     const last7 = st.events.filter((e) => Date.now() - e.t < 7 * 24 * 3600 * 1000).length;
     const cells = [
       ['总拦截', st.total], ['今日', st.today], ['近 7 天', last7],
-      ['登录失败', count('login')], ['非法链接', count('bad_url')], ['非法文件', count('bad_file') + count('oversize')],
-      ['CSP 拦截', count('csp')], ['频率拦截', count('rate')], ['其他', count('blocked')]
+      ['登录失败', count('login')], ['非法链接', count('bad_url')], ['可疑链接', count('warn_url')],
+      ['非法文件', count('bad_file') + count('oversize')], ['CSP 拦截', count('csp')], ['频率拦截', count('rate')]
     ];
     box.innerHTML = cells.map(([label, n]) => '<div class="sec-stat"><b>' + n + '</b><span>' + label + '</span></div>').join('');
-    const labels = { bad_url: '非法链接', bad_file: '非法文件', oversize: '超大文件', rate: '频率拦截', login: '登录失败', csp: 'CSP 拦截', blocked: '其他' };
+    const labels = { bad_url: '非法链接', warn_url: '可疑链接', bad_file: '非法文件', oversize: '超大文件', rate: '频率拦截', login: '登录失败', csp: 'CSP 拦截', blocked: '其他' };
     list.innerHTML = st.events.slice(0, 8).map((e) => {
       const when = new Date(e.t).toLocaleString('zh-CN', { hour12: false });
       return '<div class="sec-event"><b>' + esc(labels[e.type] || e.type) + '</b><em>' + esc(when + ' · ' + e.detail) + '</em></div>';
@@ -816,6 +818,17 @@
     }
   }
 
+  function updateUrlSafety() {
+    const el = $('#addUrlSafety');
+    if (!el) return;
+    const raw = $('#addUrl').value.trim();
+    if (!raw) { el.textContent = ''; el.style.color = ''; return; }
+    const r = window.YXGLinkSafety ? YXGLinkSafety.check(raw) : { level: 'safe', reason: '' };
+    if (r.level === 'safe') { el.textContent = '链接安全检查：通过'; el.style.color = 'var(--ok)'; }
+    else if (r.level === 'warn') { el.textContent = '链接安全检查：注意 · ' + r.reason; el.style.color = 'var(--warn)'; }
+    else { el.textContent = '链接安全检查：危险 · ' + r.reason; el.style.color = 'var(--fail)'; }
+  }
+
   function addLink(e) {
     e.preventDefault();
     if (window.YXGSecurity && !YXGSecurity.rateLimit('add-link', 20, 60 * 1000)) {
@@ -830,6 +843,20 @@
       return;
     }
     const url = parsed.href;
+    const risk = window.YXGLinkSafety ? YXGLinkSafety.check(url) : { level: 'safe', reason: '' };
+    if (risk.level === 'danger') {
+      setStatus('链接安全检查未通过：' + risk.reason, 'err');
+      if (window.YXGSecurity) YXGSecurity.log('bad_url', risk.reason + ' ' + url);
+      updateUrlSafety();
+      return;
+    }
+    if (risk.level === 'warn') {
+      if (window.YXGSecurity) YXGSecurity.log('warn_url', risk.reason + ' ' + url);
+      if (!confirm('链接安全检查提示：' + risk.reason + '\n\n仍然添加这条链接？')) {
+        setStatus('已取消添加', 'warn');
+        return;
+      }
+    }
     if (lib.links.some((l) => l.url === url)) { setStatus('这条链接已经存在', 'warn'); return; }
     const cat = $('#addCat').value || (lib.categories[0] && lib.categories[0].id);
     if (!cat) { setStatus('请先新建一个风格', 'warn'); return; }
@@ -860,6 +887,7 @@
     $('#addUrl').value = '';
     $('#addTitle').value = '';
     $('#addCover').value = '';
+    updateUrlSafety();
     markDirty();
     render();
     setStatus('已添加，记得点右下角「保存并发布」', 'ok');
@@ -1040,7 +1068,7 @@
   }
 
   function tutorialContent(key) {
-    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=13';
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=14';
     const P = 'https://togetherggg.github.io/yingxiangtu/';
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
@@ -1149,7 +1177,7 @@
       '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261043 · 管理页 v13<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261045 · 管理页 v14<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openTutorial() {
@@ -1222,6 +1250,8 @@
       renderSecurity();
     });
     $('#addLinkForm').addEventListener('submit', addLink);
+    $('#addUrl').addEventListener('input', updateUrlSafety);
+    $('#addUrl').addEventListener('blur', updateUrlSafety);
     $('#coverFile').addEventListener('change', function (e) {
       const f = e.target.files && e.target.files[0];
       if (f) uploadCover(f);
