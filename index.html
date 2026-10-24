@@ -16,7 +16,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/app.css?v=20261039">
+<link rel="stylesheet" href="assets/css/app.css?v=20261040">
 </head>
 <body>
 
@@ -91,6 +91,9 @@
       </button>
       <button class="icon-btn" id="themeBtn" type="button" title="切换明暗主题" aria-label="切换明暗主题">
         <svg class="ico" data-icon="theme" aria-hidden="true"><use href="#i-sun"></use></svg>
+      </button>
+      <button class="btn btn-sm admin-entry" id="adminModeBtn" type="button" title="进入管理模式" aria-label="进入管理模式">
+        <svg class="ico" aria-hidden="true"><use href="#i-shield"></use></svg><span>管理</span>
       </button>
       <button class="icon-btn" id="settingsBtn" type="button" title="设置 / 使用教程" aria-label="设置 / 使用教程">
         <svg class="ico" aria-hidden="true"><use href="#i-settings"></use></svg>
@@ -175,6 +178,14 @@
   </div>
 </div>
 
+<div class="admin-mode" id="adminMode" hidden>
+  <div class="admin-mode-bar">
+    <div class="admin-mode-title"><b>管理模式</b><span>保存后公网页自动更新 · 关闭即回公网页</span></div>
+    <button class="btn btn-sm" id="adminModeClose" type="button">返回公网页</button>
+  </div>
+  <iframe id="adminFrame" title="效果图管理" src="about:blank"></iframe>
+</div>
+
 <div id="modalRoot"></div>
 <div id="menuRoot"></div>
 <div id="toasts" role="status" aria-live="polite"></div>
@@ -184,6 +195,6 @@
 
 <script>window.__STATIC_LIBRARY_URL__='data/library.json';</script>
 <script src="assets/js/qrcode.min.js"></script>
-<script src="assets/js/app.js?v=20261039"></script>
+<script src="assets/js/app.js?v=20261040"></script>
 </body>
 </html>
