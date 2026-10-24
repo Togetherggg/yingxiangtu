@@ -1165,6 +1165,15 @@
 
   function openLink(link) {
     if (!link) return;
+    const risk = window.YXGLinkSafety ? YXGLinkSafety.check(link.url) : { level: 'safe', reason: '' };
+    if (risk.level === 'danger') {
+      if (window.YXGSecurity) YXGSecurity.log('bad_url', 'blocked open ' + risk.reason + ' ' + link.url);
+      toast('安全提示：该链接未通过安全检查，已阻止打开', { duration: 3200 });
+      return;
+    }
+    if (risk.level === 'warn' && window.YXGSecurity) {
+      YXGSecurity.log('warn_url', risk.reason + ' ' + link.url);
+    }
     // 手机 / 微信内置浏览器里，用当前窗口打开最可靠（可返回继续浏览）
     if (isTouchDevice()) { window.location.href = link.url; return; }
 
@@ -2501,7 +2510,7 @@
 
   const TUTORIAL_URLS = {
     public: 'https://togetherggg.github.io/yingxiangtu/',
-    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=13',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=14',
     local: 'http://127.0.0.1:51888/'
   };
 
@@ -2726,7 +2735,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261044 · 管理页 v13<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261045 · 管理页 v14<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -2942,7 +2951,7 @@
     const loading = $('#adminModeLoading');
     if (loading) loading.hidden = false;
     frame.onload = () => { if (loading) loading.hidden = true; };
-    frame.src = 'admin.html?v=13&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
+    frame.src = 'admin.html?v=14&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
     mode.hidden = false;
     document.body.classList.add('admin-mode-open');
     setTimeout(() => { const btn = $('#adminModeClose'); if (btn) btn.focus(); }, 60);
