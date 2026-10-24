@@ -588,10 +588,18 @@
     if (!Array.isArray(lib.schedule)) lib.schedule = [];
     if (!lib.board || typeof lib.board !== 'object') lib.board = { schedule: true, weather: true, calendar: true, fengshui: true };
     const now = new Date();
-    $('#evDate').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-    dirty = 0;
+    const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const beforeSchedule = lib.schedule.length;
+    lib.schedule = lib.schedule.filter((e) => e && typeof e.date === 'string' && e.date >= todayStr);
+    const removed = beforeSchedule - lib.schedule.length;
+    $('#evDate').value = todayStr;
+    dirty = removed;
     showAdmin();
     render();
+    if (removed) {
+      setStatus('已自动清理 ' + removed + ' 条过期日程，正在保存…', 'warn');
+      await save();
+    }
     setStatus('已连接 ' + repo.full_name + ' · 数据已载入', 'ok');
     setSaveStatus('已与公网页同步', 'ok');
     focusEmbedTarget();
