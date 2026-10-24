@@ -831,7 +831,6 @@ img { display: block; }
 }
 .share-entry-wrap { margin-top: 12px; }
 .share-entry-wrap .btn { font-weight: 500; }
-body.is-readonly #addBtn,
 body.is-readonly #dataBtn,
 body.is-readonly #newCatBtn,
 body.is-readonly .cat-kebab,
