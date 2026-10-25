@@ -190,7 +190,12 @@
   .sec-event { display: flex; align-items: baseline; gap: 6px; font-size: 10px; color: var(--text-3); }
   .sec-event b { color: var(--warn); font-weight: 600; flex: 0 0 auto; }
   .sec-event em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sec-empty { font-size: 10.5px; color: var(--text-3); padding: 6px 0; }\n</style>
+  .sec-empty { font-size: 10.5px; color: var(--text-3); padding: 6px 0; }\n  .adm-edit {
+    border: 0; background: none; color: var(--text-3); font-size: 11.5px; padding: 3px 8px;
+    border-radius: 7px; flex: 0 0 auto;
+  }
+  .adm-edit:hover { color: var(--accent-2); background: rgba(34, 211, 238, .1); }
+  .adm-cat-edit { flex: 1 1 auto; min-width: 0; height: 30px !important; font-size: 12.5px !important; }\n</style>
 </head>
 <body>
 
@@ -262,7 +267,7 @@
         </div>
 
         <div class="adm-card">
-          <h2>风格管理 <span class="hint">可新增 / 删除；删除会同时删除其下链接</span></h2>
+          <h2>风格管理 <span class="hint">可新增 / 改名 / 删除；删除会同时删除其下链接</span></h2>
           <form id="addCatForm">
             <div class="adm-field">
               <label for="catName">新增风格名称 *</label>
@@ -500,7 +505,7 @@
         '<span class="count">' + n + ' 条</span>' +
         (sys
           ? '<button class="adm-del" type="button" data-filter-uncat="1">查看</button>'
-          : '<button class="adm-del" type="button" data-delcat="' + esc(c.id) + '">删除</button>') +
+          : '<button class="adm-edit" type="button" data-editcat="' + esc(c.id) + '">改名</button><button class="adm-del" type="button" data-delcat="' + esc(c.id) + '">删除</button>') +
         '</div>';
     }).join('') || '<div class="adm-empty">还没有风格，先新建一个</div>';
 
@@ -893,6 +898,48 @@
     setStatus('已添加，记得点右下角「保存并发布」', 'ok');
   }
 
+  function startEditCat(id) {
+    const c = (lib.categories || []).filter((x) => x.id === id)[0];
+    if (!c || c.system) return;
+    const row = $$('#catList [data-cat]').filter((x) => x.dataset.cat === id)[0];
+    if (!row) return;
+    const nameEl = row.querySelector('.name');
+    if (!nameEl) return;
+    const input = document.createElement('input');
+    input.className = 'input adm-cat-edit';
+    input.maxLength = 24;
+    input.value = c.name;
+    input.setAttribute('aria-label', '修改风格名称');
+    nameEl.replaceWith(input);
+    input.focus();
+    input.select();
+    let done = false;
+    function finish(save) {
+      if (done) return;
+      const v = input.value.trim();
+      if (save) {
+        if (!v) { setStatus('风格名称不能为空', 'warn'); input.focus(); return; }
+        if (lib.categories.some((x) => x.id !== id && x.name === v)) {
+          setStatus('已有同名风格', 'warn');
+          input.focus();
+          return;
+        }
+        if (v !== c.name) {
+          c.name = v.slice(0, 24);
+          markDirty();
+          setStatus('风格名称已修改，记得保存发布', 'ok');
+        }
+      }
+      done = true;
+      render();
+    }
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
+
   function addCat(e) {
     e.preventDefault();
     const name = $('#catName').value.trim();
@@ -1068,7 +1115,7 @@
   }
 
   function tutorialContent(key) {
-    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=14';
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=15';
     const P = 'https://togetherggg.github.io/yingxiangtu/';
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
@@ -1112,8 +1159,9 @@
         '<h4>风格管理</h4>' +
         '<ul>' +
         '<li><strong>新增</strong>：在「风格管理」填名称，点预设色块或彩色圆环自定义颜色，点「添加风格」。</li>' +
+        '<li><strong>改名</strong>：点风格右侧「改名」，直接编辑文字，回车或点空白处保存；再点「保存并发布」同步到公网页。</li>' +
         '<li><strong>删除</strong>：点右侧「删除」。里面的链接<strong>不会删除</strong>，会移到「待分类」。</li>' +
-        '<li>「待分类」是系统分类，不能删除或改名；普通风格可以新增和删除。</li>' +
+        '<li>「待分类」是系统分类，不能删除或改名；普通风格可以新增、改名和删除。</li>' +
         '</ul>' +
         '<h4>待分类怎么移动</h4>' +
         '<ol>' +
@@ -1177,7 +1225,7 @@
       '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261045 · 管理页 v14<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261048 · 管理页 v15<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openTutorial() {
@@ -1274,6 +1322,8 @@
     $('#catList').addEventListener('click', (e) => {
       const f = e.target.closest('[data-filter-uncat]');
       if (f) { $('#filterInput').value = '待分类'; renderLinks(); return; }
+      const ed = e.target.closest('[data-editcat]');
+      if (ed) { startEditCat(ed.dataset.editcat); return; }
       const b = e.target.closest('[data-delcat]');
       if (b) delCat(b.dataset.delcat);
     });
