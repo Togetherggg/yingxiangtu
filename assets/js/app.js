@@ -400,17 +400,64 @@
     softUpdateContent._t = setTimeout(() => content.classList.remove('soft-update'), 520);
   }
 
-  async function refreshPublicLibrary() {
+  async function refreshPublicLibrary(notify) {
     if (!(state.mode === 'public' || state.mode === 'api')) return;
+    const oldUpdated = state.baseUpdatedAt;
     try {
       const lib = await loadData();
       if (!lib) return;
+      if (oldUpdated && lib.updatedAt && String(lib.updatedAt) === String(oldUpdated)) return;
       state.lib = lib;
       state.ready = true;
       state.baseUpdatedAt = lib.updatedAt || state.baseUpdatedAt;
       renderAll(false);
       softUpdateContent();
+      if (notify) toast('公网页已同步最新修改', { duration: 2200 });
     } catch (e) { /* 静默，下一次再试 */ }
+  }
+
+  const PUBLIC_RAW_URL = 'https://raw.githubusercontent.com/Togetherggg/yingxiangtu/main/data/library.json';
+  let liveSyncStarted = false;
+
+  async function pollPublicData(notify) {
+    if (state.mode !== 'public' || !window.__STATIC_LIBRARY_URL__) return;
+    if (document.visibilityState !== 'visible') return;
+    const oldUpdated = state.baseUpdatedAt;
+    try {
+      const res = await fetch(PUBLIC_RAW_URL + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const raw = await res.json();
+      if (!raw || !Array.isArray(raw.links)) return;
+      if (oldUpdated && raw.updatedAt && String(raw.updatedAt) === String(oldUpdated)) return;
+      const lib = normalizeLibrary(raw);
+      state.lib = lib;
+      state.ready = true;
+      state.baseUpdatedAt = String(raw.updatedAt || oldUpdated || '');
+      renderAll(false);
+      softUpdateContent();
+      if (notify) toast('公网页已同步最新修改', { duration: 2200 });
+    } catch (e) { /* 网络不稳时等下一次 */ }
+  }
+
+  function startLiveSync() {
+    if (liveSyncStarted) return;
+    if (state.mode !== 'public' || !window.__STATIC_LIBRARY_URL__) return;
+    liveSyncStarted = true;
+    try {
+      const bc = new BroadcastChannel('yxg-library');
+      bc.onmessage = (e) => {
+        if (e.data && e.data.type === 'saved') refreshPublicLibrary(true);
+      };
+    } catch (e) {}
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'yxg.library.saved') refreshPublicLibrary(true);
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') pollPublicData(true);
+    });
+    setInterval(() => {
+      if (document.visibilityState === 'visible') pollPublicData(true);
+    }, 10000);
   }
 
   function markSaved() {
@@ -2562,7 +2609,7 @@
 
   const TUTORIAL_URLS = {
     public: 'https://togetherggg.github.io/yingxiangtu/',
-    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=16',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=17',
     local: 'http://127.0.0.1:51888/'
   };
 
@@ -2787,7 +2834,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261049 · 管理页 v16<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261050 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -3003,7 +3050,7 @@
     const loading = $('#adminModeLoading');
     if (loading) loading.hidden = false;
     frame.onload = () => { if (loading) loading.hidden = true; };
-    frame.src = 'admin.html?v=16&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
+    frame.src = 'admin.html?v=17&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
     mode.hidden = false;
     document.body.classList.add('admin-mode-open');
     setTimeout(() => { const btn = $('#adminModeClose'); if (btn) btn.focus(); }, 60);
@@ -3016,7 +3063,7 @@
     mode.hidden = true;
     document.body.classList.remove('admin-mode-open');
     if (frame) frame.src = 'about:blank';
-    if (state.mode === 'public') refreshPublicLibrary();
+    if (state.mode === 'public') refreshPublicLibrary(true);
     else if (state.mode === 'api') syncFromServer();
   }
 
@@ -3030,7 +3077,7 @@
     window.addEventListener('message', (e) => {
       if (e.origin !== location.origin) return;
       if (e.data && e.data.type === 'yxg-admin-saved') {
-        if (state.mode === 'public') refreshPublicLibrary();
+        if (state.mode === 'public') refreshPublicLibrary(true);
         else if (state.mode === 'api') syncFromServer();
       }
     });
@@ -3278,6 +3325,7 @@
     state.ready = true;
     if (needSave) await saveLibrary();
     renderAll(true);
+    startLiveSync();
     if (state.mode === 'api' || state.mode === 'public') {
       if (state.mode === 'api') {
         setInterval(() => { api.call('api/health', { timeout: 4000 }).catch(() => {}); }, 60000);
