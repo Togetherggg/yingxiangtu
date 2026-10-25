@@ -707,6 +707,14 @@
       if (window.parent !== window) {
         try { window.parent.postMessage({ type: 'yxg-admin-saved', updatedAt: lib.updatedAt }, location.origin); } catch (e) {}
       }
+      try {
+        if ('BroadcastChannel' in window) {
+          const syncChannel = new BroadcastChannel('yxg-library');
+          syncChannel.postMessage({ type: 'saved', updatedAt: lib.updatedAt });
+          syncChannel.close();
+        }
+      } catch (e) {}
+      try { localStorage.setItem('yxg.library.saved', String(Date.now())); } catch (e) {}
     } catch (e) {
       if (e.status === 409) {
         setSaveStatus('公网页已被更新，请点「刷新数据」后重试', 'err');
@@ -1118,7 +1126,7 @@
   }
 
   function tutorialContent(key) {
-    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=16';
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=17';
     const P = 'https://togetherggg.github.io/yingxiangtu/';
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
@@ -1228,7 +1236,7 @@
       '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261049 · 管理页 v16<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261050 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openTutorial() {
