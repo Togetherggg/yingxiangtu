@@ -1452,3 +1452,82 @@ button, .btn, .icon-btn, .card, .style-tile, .wallpaper-card { -webkit-tap-highl
   .update-notice-main { flex-basis: calc(100% - 34px); }
   .update-notice .btn { margin-left: auto; }
 }
+/* ---------- 快速水印 ---------- */
+.wm-overlay {
+  position: fixed; inset: 0; z-index: 140; display: flex; align-items: center; justify-content: center;
+  padding: 18px; background: rgba(3, 5, 9, .72); backdrop-filter: blur(10px);
+}
+.wm-overlay[hidden] { display: none; }
+.wm-modal {
+  width: min(1000px, 100%); max-height: calc(100vh - 36px); display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid var(--line-2); border-radius: 20px;
+  box-shadow: var(--shadow-lg); overflow: hidden;
+}
+.wm-head { display: flex; align-items: flex-start; gap: 12px; padding: 16px 18px 0; }
+.wm-head h3 { margin: 0; font-size: 17px; color: var(--text); }
+.wm-head p { margin: 3px 0 0; font-size: 11px; color: var(--text-3); }
+.wm-close {
+  margin-left: auto; width: 30px; height: 30px; border: 1px solid var(--line);
+  border-radius: 9px; background: var(--panel); color: var(--text-3); font-size: 19px; line-height: 1; cursor: pointer;
+}
+.wm-close:hover { color: var(--text); background: var(--panel-2); }
+.wm-body {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .9fr);
+  gap: 16px; padding: 14px 18px 18px; overflow: auto;
+}
+.wm-preview { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.wm-drop {
+  position: relative; min-height: 330px; display: flex; align-items: center; justify-content: center;
+  border: 1px dashed var(--line-2); border-radius: 14px; background: var(--panel); overflow: hidden; cursor: pointer;
+}
+.wm-drop.is-drag { border-color: var(--accent); background: var(--accent-soft); }
+.wm-drop canvas {
+  display: block; max-width: 100%; max-height: 430px; object-fit: contain;
+  background-color: #141821;
+  background-image: linear-gradient(45deg, rgba(255,255,255,.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.05) 75%), linear-gradient(45deg, rgba(255,255,255,.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.05) 75%);
+  background-size: 20px 20px; background-position: 0 0, 10px 10px;
+}
+.wm-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  color: var(--text-2); font-size: 13px; pointer-events: none;
+}
+.wm-empty span { font-size: 10.5px; color: var(--text-3); }
+.wm-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 10.5px; color: var(--text-3); min-height: 14px; }
+.wm-controls { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.wm-controls h4 { margin: 5px 0 1px; font-size: 11px; color: var(--text-3); font-weight: 600; }
+.wm-tabs { display: flex; gap: 5px; padding: 3px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line); }
+.wm-tabs button { flex: 1; height: 28px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font-size: 11px; cursor: pointer; }
+.wm-tabs button.is-active { background: var(--panel-2); color: var(--text); box-shadow: var(--shadow-sm); }
+.wm-field, .wm-controls label { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text-2); }
+.wm-field { flex-direction: column; align-items: stretch; gap: 4px; }
+.wm-controls input[type="text"], .wm-controls select {
+  height: 31px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+  color: var(--text); padding: 0 8px; font-size: 11.5px; min-width: 0;
+}
+.wm-controls input[type="text"] { width: 100%; }
+.wm-controls input[type="color"] { width: 34px; height: 28px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); padding: 2px; }
+.wm-controls input[type="range"] { flex: 1; min-width: 60px; accent-color: var(--accent); }
+.wm-controls label b { color: var(--text-3); font-size: 10px; font-weight: 500; min-width: 28px; text-align: right; }
+.wm-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wm-row > label { flex: 1 1 120px; }
+.wm-check { display: inline-flex !important; align-items: center; gap: 5px; flex: 0 0 auto !important; font-size: 11px; color: var(--text-2); cursor: pointer; }
+.wm-logo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wm-logo-row span { font-size: 10px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wm-pos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.wm-pos button {
+  height: 27px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel);
+  color: var(--text-3); font-size: 10px; cursor: pointer;
+}
+.wm-pos button:hover { border-color: var(--line-2); color: var(--text-2); }
+.wm-pos button.is-active { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+.wm-controls #wmDownload { margin-top: 4px; width: 100%; }
+.wm-note { margin: 5px 0 0; font-size: 10px; line-height: 1.6; color: var(--text-3); }
+body.wm-open { overflow: hidden; }
+@media (max-width: 760px) {
+  .wm-overlay { padding: 8px; }
+  .wm-modal { max-height: calc(100vh - 16px); border-radius: 15px; }
+  .wm-body { grid-template-columns: 1fr; gap: 12px; padding: 12px 14px 16px; }
+  .wm-drop { min-height: 220px; }
+  .wm-drop canvas { max-height: 280px; }
+  .wm-head { padding: 13px 14px 0; }
+}
