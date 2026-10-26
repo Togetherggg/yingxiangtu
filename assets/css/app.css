@@ -1531,3 +1531,40 @@ body.wm-open { overflow: hidden; }
   .wm-drop canvas { max-height: 280px; }
   .wm-head { padding: 13px 14px 0; }
 }
+/* 图片工具升级：历史、模式切换、自由拖动、格式转换 */
+.wm-history { display: flex; gap: 5px; margin-left: 10px; }
+.wm-history button {
+  width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); color: var(--text-2); font-size: 15px; line-height: 1; cursor: pointer;
+}
+.wm-history button:hover:not(:disabled) { color: var(--text); border-color: var(--line-2); }
+.wm-history button:disabled { opacity: .3; cursor: not-allowed; }
+.wm-mode-tabs { display: flex; gap: 4px; padding: 0 18px; margin-top: 12px; }
+.wm-mode-tabs button {
+  height: 31px; padding: 0 14px; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--text-3); font-size: 12px; cursor: pointer;
+}
+.wm-mode-tabs button:hover { color: var(--text-2); background: var(--panel); }
+.wm-mode-tabs button.is-active { color: var(--text); background: var(--panel-2); border-color: var(--line); }
+.wm-convert-body {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .9fr);
+  gap: 16px; padding: 14px 18px 18px; overflow: auto;
+}
+#wmOverlay [hidden] { display: none !important; }
+#wmCanvas { touch-action: none; cursor: grab; }
+#wmCanvas.is-dragging { cursor: grabbing; }
+.wm-drag-tip { margin: 1px 0 2px; font-size: 10px; line-height: 1.55; color: var(--text-3); }
+.wm-convert-body .wm-drop { min-height: 330px; }
+.wm-convert-body .wm-drop canvas { max-height: 430px; }
+.wm-convert-body .wm-controls input[type="number"] {
+  width: 100%; height: 31px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); color: var(--text); padding: 0 8px; font-size: 11.5px;
+}
+.wm-convert-body .wm-row > label { flex: 1 1 90px; }
+@media (max-width: 760px) {
+  .wm-history { margin-left: auto; }
+  .wm-mode-tabs { padding: 0 14px; }
+  .wm-convert-body { grid-template-columns: 1fr; gap: 12px; padding: 12px 14px 16px; }
+  .wm-convert-body .wm-drop { min-height: 220px; }
+  .wm-convert-body .wm-drop canvas { max-height: 280px; }
+}
