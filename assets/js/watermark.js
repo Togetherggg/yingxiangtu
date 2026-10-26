@@ -18,6 +18,10 @@
     shadow: true,
     logoSize: 20,
     pos: 'br',
+    freeX: null,
+    freeY: null,
+    guideX: null,
+    guideY: null,
     tile: false,
     format: 'png',
     quality: 90
@@ -58,6 +62,7 @@
       if (b[0] === 0x38 && b[1] === 0x42 && b[2] === 0x50 && b[3] === 0x53) return 'psd'; // 8BPS
       if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'png';
       if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return 'jpg';
+      if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'webp';
       return '';
     });
   }
@@ -98,6 +103,7 @@
     if (empty) empty.hidden = true;
     if (cv) cv.hidden = false;
     setStatus(kind === 'psd' ? 'PSD 合层预览已读取（导出 PNG/JPG，不保留图层）' : '图片已载入', 'var(--ok)');
+    resetHistory();
     scheduleRender();
   }
 
@@ -124,6 +130,7 @@
         if (empty) empty.hidden = true;
         if (cv) cv.hidden = false;
         setStatus('图片已载入', 'var(--ok)');
+        resetHistory();
         scheduleRender();
       });
     }).catch(function (e) {
@@ -147,6 +154,7 @@
           WM.logo = { canvas: canvas, width: canvas.width, height: canvas.height };
           WM.logoName = file.name;
           setStatus('PSD 水印图已载入', 'var(--ok)');
+          resetHistory();
           scheduleRender();
         });
       }
@@ -154,6 +162,7 @@
         WM.logo = { img: img, width: img.naturalWidth, height: img.naturalHeight };
         WM.logoName = file.name;
         setStatus('图片水印已载入', 'var(--ok)');
+        resetHistory();
         scheduleRender();
       });
     }).catch(function (e) {
@@ -226,15 +235,31 @@
     }
   }
 
-  function drawLogo(ctx, outW, outH) {
-    if (!WM.logo) return;
-    var src = sourceDrawable(WM.logo);
+  function logoMetrics(outW, outH) {
     var sw = WM.logo.width;
     var sh = WM.logo.height;
     var lw = Math.max(24, outW * WM.logoSize / 100);
     var lh = lw * sh / sw;
     if (lh > outH * .5) { lh = outH * .5; lw = lh * sw / sh; }
-    var margin = Math.round(outW * .035);
+    return { w: lw, h: lh, margin: Math.round(outW * .035) };
+  }
+
+  function logoCenter(outW, outH) {
+    var m = logoMetrics(outW, outH);
+    if (WM.freeX != null && WM.freeY != null) {
+      return { x: WM.freeX * outW, y: WM.freeY * outH, w: m.w, h: m.h, margin: m.margin };
+    }
+    var p = posXY(WM.pos, m.w, m.h, outW, outH, m.margin);
+    return { x: p.x, y: p.y, w: m.w, h: m.h, margin: m.margin };
+  }
+
+  function drawLogo(ctx, outW, outH) {
+    if (!WM.logo) return;
+    var src = sourceDrawable(WM.logo);
+    var m = logoMetrics(outW, outH);
+    var lw = m.w;
+    var lh = m.h;
+    var margin = m.margin;
     ctx.globalAlpha = WM.opacity / 100;
     var rot = WM.rotate * Math.PI / 180;
     function one(x, y) {
@@ -251,9 +276,31 @@
         for (var x = sx / 2; x < outW + sx; x += sx) one(x, y);
       }
     } else {
-      var p = posXY(WM.pos, lw, lh, outW, outH, margin);
+      var p = logoCenter(outW, outH);
       one(p.x, p.y);
     }
+  }
+
+  function drawGuides(ctx, outW, outH) {
+    if (WM.guideX == null && WM.guideY == null) return;
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(34,211,238,.9)';
+    ctx.lineWidth = Math.max(1, outW / 1100);
+    ctx.setLineDash([Math.max(5, outW * .012), Math.max(4, outW * .008)]);
+    if (WM.guideX != null) {
+      ctx.beginPath();
+      ctx.moveTo(WM.guideX * outW, 0);
+      ctx.lineTo(WM.guideX * outW, outH);
+      ctx.stroke();
+    }
+    if (WM.guideY != null) {
+      ctx.beginPath();
+      ctx.moveTo(0, WM.guideY * outH);
+      ctx.lineTo(outW, WM.guideY * outH);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function render() {
@@ -275,6 +322,7 @@
     if (WM.type === 'text') drawText(ctx, outW, outH);
     else drawLogo(ctx, outW, outH);
     ctx.restore();
+    drawGuides(ctx, outW, outH);
     var dims = $('#wmDims');
     if (dims) dims.textContent = outW + ' × ' + outH + (WM.baseKind === 'psd' ? ' · PSD 预览' : '');
     var dl = $('#wmDownload');
@@ -287,6 +335,288 @@
     requestAnimationFrame(render);
   }
 
+  var HISTORY = [];
+  var historyIndex = -1;
+  var historyTimer = null;
+  var applyingHistory = false;
+
+  function snapshot() {
+    return {
+      type: WM.type, text: WM.text, size: WM.size, color: WM.color, opacity: WM.opacity,
+      rotate: WM.rotate, bold: WM.bold, shadow: WM.shadow, logoSize: WM.logoSize,
+      pos: WM.pos, freeX: WM.freeX, freeY: WM.freeY, tile: WM.tile
+    };
+  }
+
+  function sameSnapshot(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  function updateHistoryButtons() {
+    var u = $('#wmUndo');
+    var r = $('#wmRedo');
+    if (u) u.disabled = historyIndex <= 0;
+    if (r) r.disabled = historyIndex < 0 || historyIndex >= HISTORY.length - 1;
+  }
+
+  function resetHistory() {
+    HISTORY = [snapshot()];
+    historyIndex = 0;
+    clearTimeout(historyTimer);
+    updateHistoryButtons();
+  }
+
+  function commitHistory(immediate) {
+    if (applyingHistory) return;
+    clearTimeout(historyTimer);
+    function push() {
+      var s = snapshot();
+      if (historyIndex >= 0 && sameSnapshot(HISTORY[historyIndex], s)) return;
+      HISTORY = HISTORY.slice(0, historyIndex + 1);
+      HISTORY.push(s);
+      if (HISTORY.length > 60) HISTORY.shift();
+      historyIndex = HISTORY.length - 1;
+      updateHistoryButtons();
+    }
+    if (immediate) push();
+    else historyTimer = setTimeout(push, 260);
+  }
+
+  function syncUI() {
+    function val(id, v) { var e = $('#' + id); if (e) e.value = v; }
+    function checked(id, v) { var e = $('#' + id); if (e) e.checked = !!v; }
+    val('wmText', WM.text);
+    val('wmSize', WM.size);
+    val('wmColor', WM.color);
+    val('wmOpacity', WM.opacity);
+    val('wmRotate', WM.rotate);
+    val('wmLogoSize', WM.logoSize);
+    checked('wmBold', WM.bold);
+    checked('wmShadow', WM.shadow);
+    checked('wmTile', WM.tile);
+    var labels = { wmSizeVal: WM.size + '%', wmOpacityVal: WM.opacity + '%', wmRotateVal: WM.rotate + '°', wmLogoSizeVal: WM.logoSize + '%' };
+    Object.keys(labels).forEach(function (id) { var e = $('#' + id); if (e) e.textContent = labels[id]; });
+    $$('#wmTabs [data-wmtype]').forEach(function (b) { b.classList.toggle('is-active', b.dataset.wmtype === WM.type); });
+    var tp = $('#wmTextPanel');
+    var ip = $('#wmImagePanel');
+    if (tp) tp.hidden = WM.type !== 'text';
+    if (ip) ip.hidden = WM.type !== 'image';
+    $$('#wmPos button').forEach(function (b) {
+      b.classList.toggle('is-active', WM.freeX == null && b.dataset.pos === WM.pos);
+    });
+  }
+
+  function applySnapshot(s) {
+    applyingHistory = true;
+    clearTimeout(historyTimer);
+    Object.keys(s).forEach(function (k) { WM[k] = s[k]; });
+    WM.guideX = WM.guideY = null;
+    syncUI();
+    render();
+    applyingHistory = false;
+    updateHistoryButtons();
+  }
+
+  function undo() {
+    commitHistory(true);
+    if (historyIndex <= 0) return;
+    historyIndex--;
+    applySnapshot(HISTORY[historyIndex]);
+  }
+
+  function redo() {
+    if (historyIndex < 0 || historyIndex >= HISTORY.length - 1) return;
+    historyIndex++;
+    applySnapshot(HISTORY[historyIndex]);
+  }
+
+  function bindDrag() {
+    var cv = $('#wmCanvas');
+    if (!cv) return;
+    var drag = null;
+    function point(e) {
+      var rect = cv.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(cv.width, (e.clientX - rect.left) / rect.width * cv.width)),
+        y: Math.max(0, Math.min(cv.height, (e.clientY - rect.top) / rect.height * cv.height))
+      };
+    }
+    cv.addEventListener('pointerdown', function (e) {
+      if (WM.type !== 'image' || !WM.logo || WM.tile) return;
+      var p = point(e);
+      var c = logoCenter(cv.width, cv.height);
+      var pad = Math.max(8, cv.width * .012);
+      if (Math.abs(p.x - c.x) > c.w / 2 + pad || Math.abs(p.y - c.y) > c.h / 2 + pad) return;
+      e.preventDefault();
+      cv.setPointerCapture(e.pointerId);
+      cv.classList.add('is-dragging');
+      drag = { id: e.pointerId };
+    });
+    cv.addEventListener('pointermove', function (e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      e.preventDefault();
+      var p = point(e);
+      var nx = p.x / cv.width;
+      var ny = p.y / cv.height;
+      var snapsX = [0.5, 1 / 3, 2 / 3];
+      var snapsY = [0.5, 1 / 3, 2 / 3];
+      WM.guideX = null;
+      WM.guideY = null;
+      for (var i = 0; i < snapsX.length; i++) {
+        if (Math.abs(nx - snapsX[i]) < (i === 0 ? .025 : .018)) { nx = snapsX[i]; WM.guideX = snapsX[i]; break; }
+      }
+      for (var j = 0; j < snapsY.length; j++) {
+        if (Math.abs(ny - snapsY[j]) < (j === 0 ? .025 : .018)) { ny = snapsY[j]; WM.guideY = snapsY[j]; break; }
+      }
+      WM.freeX = Math.max(0, Math.min(1, nx));
+      WM.freeY = Math.max(0, Math.min(1, ny));
+      $$('#wmPos button').forEach(function (b) { b.classList.remove('is-active'); });
+      render();
+    });
+    function end(e) {
+      if (!drag || (e && e.pointerId !== drag.id)) return;
+      drag = null;
+      cv.classList.remove('is-dragging');
+      WM.guideX = WM.guideY = null;
+      render();
+      commitHistory(true);
+    }
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+  }
+
+  var CV = { src: null, name: '', kind: '', natW: 0, natH: 0, format: 'png', quality: 90 };
+
+  function convStatus(text, color) {
+    var el = $('#wmConvStatus');
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = color || '';
+  }
+
+  function setConvFile(file) {
+    if (!file) return;
+    if (file.size > 60 * 1024 * 1024) { convStatus('文件不能超过 60MB', 'var(--warn)'); return; }
+    convStatus('正在读取图片…');
+    detectKind(file).then(function (kind) {
+      if (!kind) throw new Error('只支持 PNG / JPG / WebP / PSD');
+      if (kind === 'psd') {
+        convStatus('正在加载 PSD 解析库…');
+        return readPsd(file).then(function (canvas) {
+          CV = { src: canvas, name: file.name, kind: 'psd', natW: canvas.width, natH: canvas.height, format: CV.format, quality: CV.quality };
+        });
+      }
+      return loadImage(file).then(function (img) {
+        CV = { src: img, name: file.name, kind: kind, natW: img.naturalWidth, natH: img.naturalHeight, format: CV.format, quality: CV.quality };
+      });
+    }).then(function () {
+      var cv = $('#wmConvCanvas');
+      var empty = $('#wmConvEmpty');
+      if (empty) empty.hidden = true;
+      if (cv) cv.hidden = false;
+      var w = $('#wmConvW');
+      var h = $('#wmConvH');
+      if (w) w.value = CV.natW;
+      if (h) h.value = CV.natH;
+      convStatus('已载入 · ' + CV.natW + ' × ' + CV.natH, 'var(--ok)');
+      renderConv();
+    }).catch(function (e) {
+      convStatus(e.message || '读取失败', 'var(--fail)');
+      log('bad_file', 'convert ' + (e.message || ''));
+    });
+  }
+
+  function renderConv() {
+    if (!CV.src) return;
+    var sw = CV.src.canvas ? CV.src.canvas.width : CV.src.width;
+    var sh = CV.src.canvas ? CV.src.canvas.height : CV.src.height;
+    var scale = Math.min(1, 6000 / Math.max(sw, sh));
+    var w = Math.max(1, Math.round(sw * scale));
+    var h = Math.max(1, Math.round(sh * scale));
+    var cv = $('#wmConvCanvas');
+    if (!cv) return;
+    cv.width = w;
+    cv.height = h;
+    var ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(CV.src.canvas || CV.src, 0, 0, w, h);
+    var dims = $('#wmConvDims');
+    if (dims) dims.textContent = CV.natW + ' × ' + CV.natH + (CV.kind === 'psd' ? ' · PSD 预览' : '');
+  }
+
+  function downloadConv() {
+    if (!CV.src) { convStatus('先选择一张图片', 'var(--warn)'); return; }
+    var w = Math.max(1, Math.min(12000, parseInt($('#wmConvW').value, 10) || CV.natW));
+    var h = Math.max(1, Math.min(12000, parseInt($('#wmConvH').value, 10) || CV.natH));
+    var fmt = CV.format;
+    var out = document.createElement('canvas');
+    out.width = w;
+    out.height = h;
+    var ctx = out.getContext('2d');
+    if (fmt === 'jpg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); }
+    ctx.drawImage(CV.src.canvas || CV.src, 0, 0, w, h);
+    out.toBlob(function (blob) {
+      if (!blob) { convStatus('浏览器不支持这个导出格式', 'var(--fail)'); return; }
+      var ext = fmt === 'jpg' ? 'jpg' : fmt;
+      var name = (CV.name || 'image').replace(/\.[^.]+$/, '') + '-convert.' + ext;
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      convStatus('已导出 ' + name, 'var(--ok)');
+    }, fmt === 'jpg' ? 'image/jpeg' : fmt === 'webp' ? 'image/webp' : 'image/png', CV.quality / 100);
+  }
+
+  function bindConvert() {
+    var input = $('#wmConvFile');
+    var drop = $('#wmConvDrop');
+    if (drop && input) {
+      drop.addEventListener('click', function () { input.click(); });
+      drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('is-drag'); });
+      drop.addEventListener('dragleave', function () { drop.classList.remove('is-drag'); });
+      drop.addEventListener('drop', function (e) {
+        e.preventDefault();
+        drop.classList.remove('is-drag');
+        var f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) setConvFile(f);
+      });
+      input.addEventListener('change', function () {
+        if (input.files && input.files[0]) setConvFile(input.files[0]);
+        input.value = '';
+      });
+    }
+    var fmt = $('#wmConvFormat');
+    if (fmt) fmt.addEventListener('change', function () {
+      CV.format = fmt.value;
+      var q = $('#wmConvQualityWrap');
+      if (q) q.hidden = fmt.value === 'png';
+    });
+    var q = $('#wmConvQuality');
+    if (q) q.addEventListener('input', function () {
+      CV.quality = +q.value;
+      var o = $('#wmConvQualityVal');
+      if (o) o.textContent = CV.quality + '%';
+    });
+    var w = $('#wmConvW');
+    var h = $('#wmConvH');
+    function keepRatio(from) {
+      var keep = $('#wmConvKeep');
+      if (!keep || !keep.checked || !CV.natW) return;
+      if (from === 'w') {
+        var nw = parseInt(w.value, 10);
+        if (nw > 0) h.value = Math.max(1, Math.round(nw * CV.natH / CV.natW));
+      } else {
+        var nh = parseInt(h.value, 10);
+        if (nh > 0) w.value = Math.max(1, Math.round(nh * CV.natW / CV.natH));
+      }
+    }
+    if (w) w.addEventListener('input', function () { keepRatio('w'); });
+    if (h) h.addEventListener('input', function () { keepRatio('h'); });
+    var dl = $('#wmConvDownload');
+    if (dl) dl.addEventListener('click', downloadConv);
+  }
+
   function bind() {
     var close = $('#wmClose');
     if (close) close.addEventListener('click', closeTool);
@@ -294,6 +624,37 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && overlay && !overlay.hidden) closeTool();
     });
+    document.addEventListener('keydown', function (e) {
+      if (!overlay || overlay.hidden) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      var tag = (document.activeElement && document.activeElement.tagName) || '';
+      if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+      if (e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      } else if (e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    });
+
+    $$('#wmModeTabs [data-wmmode]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var mode = b.dataset.wmmode;
+        $$('#wmModeTabs [data-wmmode]').forEach(function (x) { x.classList.toggle('is-active', x.dataset.wmmode === mode); });
+        $('#wmWatermarkBody').hidden = mode !== 'watermark';
+        $('#wmConvertBody').hidden = mode !== 'convert';
+        var hist = document.querySelector('.wm-history');
+        if (hist) hist.hidden = mode !== 'watermark';
+      });
+    });
+
+    var undoBtn = $('#wmUndo');
+    var redoBtn = $('#wmRedo');
+    if (undoBtn) undoBtn.addEventListener('click', undo);
+    if (redoBtn) redoBtn.addEventListener('click', redo);
+    bindDrag();
+    bindConvert();
 
     var baseInput = $('#wmBaseFile');
     var drop = $('#wmDrop');
@@ -325,6 +686,7 @@
         if (tp) tp.hidden = WM.type !== 'text';
         if (ip) ip.hidden = WM.type !== 'image';
         scheduleRender();
+        commitHistory();
       });
     });
 
@@ -334,6 +696,7 @@
       el.addEventListener('input', function () {
         WM[key] = fn ? fn(el) : el.value;
         scheduleRender();
+        commitHistory();
       });
     }
     bindVal('wmText', 'text');
@@ -344,23 +707,26 @@
     bindVal('wmLogoSize', 'logoSize', function (el) { var v = +el.value; var o = $('#wmLogoSizeVal'); if (o) o.textContent = v + '%'; return v; });
     bindVal('wmQuality', 'quality', function (el) { var v = +el.value; var o = $('#wmQualityVal'); if (o) o.textContent = v + '%'; return v; });
     var bold = $('#wmBold');
-    if (bold) bold.addEventListener('change', function () { WM.bold = bold.checked; scheduleRender(); });
+    if (bold) bold.addEventListener('change', function () { WM.bold = bold.checked; scheduleRender(); commitHistory(); });
     var shadow = $('#wmShadow');
-    if (shadow) shadow.addEventListener('change', function () { WM.shadow = shadow.checked; scheduleRender(); });
+    if (shadow) shadow.addEventListener('change', function () { WM.shadow = shadow.checked; scheduleRender(); commitHistory(); });
     var tile = $('#wmTile');
-    if (tile) tile.addEventListener('change', function () { WM.tile = tile.checked; scheduleRender(); });
+    if (tile) tile.addEventListener('change', function () { WM.tile = tile.checked; scheduleRender(); commitHistory(); });
     var fmt = $('#wmFormat');
     if (fmt) fmt.addEventListener('change', function () {
       WM.format = fmt.value;
       var wrap = $('#wmQualityWrap');
-      if (wrap) wrap.hidden = WM.format !== 'jpg';
+      if (wrap) wrap.hidden = WM.format !== 'jpg' && WM.format !== 'webp';
     });
 
     $$('#wmPos button').forEach(function (b) {
       b.addEventListener('click', function () {
         WM.pos = b.dataset.pos;
+        WM.freeX = WM.freeY = null;
+        WM.guideX = WM.guideY = null;
         $$('#wmPos button').forEach(function (x) { x.classList.toggle('is-active', x.dataset.pos === WM.pos); });
         scheduleRender();
+        commitHistory(true);
       });
     });
 
@@ -384,6 +750,7 @@
 
   function download() {
     if (!WM.base) { setStatus('先选择一张图片', 'var(--warn)'); return; }
+    WM.guideX = WM.guideY = null;
     render();
     var cv = $('#wmCanvas');
     if (!cv || !cv.width) return;
@@ -409,16 +776,19 @@
       a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
       setStatus('已导出 ' + name, 'var(--ok)');
-    }, fmt === 'jpg' ? 'image/jpeg' : 'image/png', WM.quality / 100);
+    }, fmt === 'jpg' ? 'image/jpeg' : fmt === 'webp' ? 'image/webp' : 'image/png', WM.quality / 100);
   }
 
   function template() {
     return '<div class="wm-overlay" id="wmOverlay" hidden>' +
-      '<div class="wm-modal" role="dialog" aria-modal="true" aria-label="快速加水印">' +
-      '<div class="wm-head"><div><h3>快速加水印</h3><p>PNG / JPG / PSD · 本地处理，不上传服务器</p></div><button class="wm-close" type="button" id="wmClose" aria-label="关闭">×</button></div>' +
-      '<div class="wm-body">' +
+      '<div class="wm-modal" role="dialog" aria-modal="true" aria-label="图片工具">' +
+      '<div class="wm-head"><div><h3>图片工具</h3><p>加水印 / 格式转换 · 本地处理，不上传服务器</p></div>' +
+      '<div class="wm-history"><button type="button" id="wmUndo" title="上一步（Ctrl+Z）" disabled>↶</button><button type="button" id="wmRedo" title="下一步（Ctrl+Shift+Z）" disabled>↷</button></div>' +
+      '<button class="wm-close" type="button" id="wmClose" aria-label="关闭">×</button></div>' +
+      '<div class="wm-mode-tabs" id="wmModeTabs"><button type="button" data-wmmode="watermark" class="is-active">加水印</button><button type="button" data-wmmode="convert">格式转换</button></div>' +
+      '<div class="wm-body" id="wmWatermarkBody">' +
       '<div class="wm-preview">' +
-      '<div class="wm-drop" id="wmDrop"><input id="wmBaseFile" type="file" accept=".png,.jpg,.jpeg,.psd,image/png,image/jpeg" hidden><div class="wm-empty" id="wmEmpty">点击或拖入图片<span>PNG / JPG / PSD</span></div><canvas id="wmCanvas" hidden></canvas></div>' +
+      '<div class="wm-drop" id="wmDrop"><input id="wmBaseFile" type="file" accept=".png,.jpg,.jpeg,.webp,.psd,image/png,image/jpeg,image/webp" hidden><div class="wm-empty" id="wmEmpty">点击或拖入图片<span>PNG / JPG / WebP / PSD</span></div><canvas id="wmCanvas" hidden></canvas></div>' +
       '<div class="wm-meta"><span id="wmStatus">选择图片开始</span><span id="wmDims"></span></div>' +
       '</div>' +
       '<div class="wm-controls">' +
@@ -429,8 +799,9 @@
       '<div class="wm-row"><label class="wm-check"><input id="wmBold" type="checkbox" checked> 加粗</label><label class="wm-check"><input id="wmShadow" type="checkbox" checked> 阴影</label></div>' +
       '</div>' +
       '<div id="wmImagePanel" hidden>' +
-      '<div class="wm-logo-row"><button class="btn btn-sm" type="button" id="wmLogoPick">上传水印图片</button><input id="wmLogoFile" type="file" accept=".png,.jpg,.jpeg,.psd,image/png,image/jpeg" hidden><span id="wmLogoStatus">PNG / JPG / PSD</span></div>' +
+      '<div class="wm-logo-row"><button class="btn btn-sm" type="button" id="wmLogoPick">上传水印图片</button><input id="wmLogoFile" type="file" accept=".png,.jpg,.jpeg,.webp,.psd,image/png,image/jpeg,image/webp" hidden><span id="wmLogoStatus">PNG / JPG / WebP / PSD</span></div>' +
       '<div class="wm-row"><label>大小 <input id="wmLogoSize" type="range" min="5" max="60" value="20"><b id="wmLogoSizeVal">20%</b></label></div>' +
+      '<p class="wm-drag-tip">图片水印可直接在左侧画布拖动；靠近中线/三分线会出现辅助线。</p>' +
       '</div>' +
       '<div class="wm-row"><label>透明度 <input id="wmOpacity" type="range" min="5" max="100" value="55"><b id="wmOpacityVal">55%</b></label><label>旋转 <input id="wmRotate" type="range" min="-45" max="45" value="0"><b id="wmRotateVal">0°</b></label></div>' +
       '<h4>水印方位</h4>' +
@@ -441,9 +812,23 @@
       '</div>' +
       '<label class="wm-check"><input id="wmTile" type="checkbox"> 平铺水印</label>' +
       '<h4>导出</h4>' +
-      '<div class="wm-row"><label>格式 <select id="wmFormat"><option value="png">PNG</option><option value="jpg">JPG</option></select></label><label id="wmQualityWrap" hidden>质量 <input id="wmQuality" type="range" min="50" max="100" value="90"><b id="wmQualityVal">90%</b></label></div>' +
+      '<div class="wm-row"><label>格式 <select id="wmFormat"><option value="png">PNG</option><option value="jpg">JPG</option><option value="webp">WebP</option></select></label><label id="wmQualityWrap" hidden>质量 <input id="wmQuality" type="range" min="50" max="100" value="90"><b id="wmQualityVal">90%</b></label></div>' +
       '<button class="btn btn-primary" type="button" id="wmDownload">下载水印图片</button>' +
-      '<p class="wm-note">PSD 会读取合层预览后加水印，导出 PNG/JPG，不会保留 PSD 图层。图片只在本机处理，不上传。</p>' +
+      '<p class="wm-note">PSD 会读取合层预览后加水印，导出 PNG/JPG/WebP，不会保留 PSD 图层。图片只在本机处理，不上传。</p>' +
+      '</div></div>' +
+      '<div class="wm-convert-body" id="wmConvertBody" hidden>' +
+      '<div class="wm-preview">' +
+      '<div class="wm-drop" id="wmConvDrop"><input id="wmConvFile" type="file" accept=".png,.jpg,.jpeg,.webp,.psd,image/png,image/jpeg,image/webp" hidden><div class="wm-empty" id="wmConvEmpty">点击或拖入图片<span>PNG / JPG / WebP / PSD</span></div><canvas id="wmConvCanvas" hidden></canvas></div>' +
+      '<div class="wm-meta"><span id="wmConvStatus">选择图片开始</span><span id="wmConvDims"></span></div>' +
+      '</div>' +
+      '<div class="wm-controls">' +
+      '<h4>输出格式</h4>' +
+      '<div class="wm-row"><label>格式 <select id="wmConvFormat"><option value="png">PNG</option><option value="jpg">JPG</option><option value="webp">WebP</option></select></label><label id="wmConvQualityWrap" hidden>质量 <input id="wmConvQuality" type="range" min="50" max="100" value="90"><b id="wmConvQualityVal">90%</b></label></div>' +
+      '<h4>尺寸</h4>' +
+      '<div class="wm-row"><label>宽 <input id="wmConvW" type="number" min="1" max="12000" placeholder="宽"></label><label>高 <input id="wmConvH" type="number" min="1" max="12000" placeholder="高"></label></div>' +
+      '<label class="wm-check"><input id="wmConvKeep" type="checkbox" checked> 保持比例</label>' +
+      '<button class="btn btn-primary" type="button" id="wmConvDownload">转换并下载</button>' +
+      '<p class="wm-note">支持 PNG / JPG / WebP / PSD 输入；PSD 读取合层预览；输出 PNG / JPG / WebP。这里是图片格式转换，不包含 PDF、Word 等文档转换。</p>' +
       '</div></div></div></div>';
   }
 
