@@ -542,6 +542,60 @@
     if (dims) dims.textContent = CV.natW + ' × ' + CV.natH + (CV.kind === 'psd' ? ' · PSD 预览' : '');
   }
 
+  function saveBlob(blob, name) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    convStatus('已导出 ' + name, 'var(--ok)');
+  }
+
+  function makeImagePdf(jpeg, iw, ih) {
+    var landscape = iw > ih;
+    var W = landscape ? 841.89 : 595.28;
+    var H = landscape ? 595.28 : 841.89;
+    var margin = 24;
+    var scale = Math.min((W - margin * 2) / iw, (H - margin * 2) / ih);
+    var pw = iw * scale;
+    var ph = ih * scale;
+    var x = (W - pw) / 2;
+    var y = (H - ph) / 2;
+    var enc = new TextEncoder();
+    var content = enc.encode('q\n' + pw.toFixed(2) + ' 0 0 ' + ph.toFixed(2) + ' ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' cm\n/Im0 Do\nQ\n');
+    var parts = [];
+    var len = 0;
+    var offsets = {};
+    function push(data) {
+      var b = typeof data === 'string' ? enc.encode(data) : data;
+      parts.push(b);
+      len += b.length;
+    }
+    push('%PDF-1.4\n');
+    offsets[1] = len;
+    push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+    offsets[2] = len;
+    push('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+    offsets[3] = len;
+    push('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>\nendobj\n');
+    offsets[4] = len;
+    push('4 0 obj\n<< /Length ' + content.length + ' >>\nstream\n');
+    push(content);
+    push('endstream\nendobj\n');
+    offsets[5] = len;
+    push('5 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + iw + ' /Height ' + ih + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpeg.length + ' >>\nstream\n');
+    push(jpeg);
+    push('\nendstream\nendobj\n');
+    var xref = len;
+    var xrefText = 'xref\n0 6\n0000000000 65535 f \n';
+    for (var i = 1; i <= 5; i++) xrefText += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+    push(xrefText);
+    push('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+
   function downloadConv() {
     if (!CV.src) { convStatus('先选择一张图片', 'var(--warn)'); return; }
     var w = Math.max(1, Math.min(12000, parseInt($('#wmConvW').value, 10) || CV.natW));
@@ -551,20 +605,30 @@
     out.width = w;
     out.height = h;
     var ctx = out.getContext('2d');
-    if (fmt === 'jpg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); }
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
     ctx.drawImage(CV.src.canvas || CV.src, 0, 0, w, h);
+    if (fmt === 'pdf') {
+      convStatus('正在生成 PDF…');
+      out.toBlob(function (jpegBlob) {
+        if (!jpegBlob) { convStatus('PDF 生成失败', 'var(--fail)'); return; }
+        jpegBlob.arrayBuffer().then(function (buf) {
+          var blob = makeImagePdf(new Uint8Array(buf), w, h);
+          var name = (CV.name || 'image').replace(/\.[^.]+$/, '') + '-convert.pdf';
+          saveBlob(blob, name);
+        }).catch(function () { convStatus('PDF 生成失败', 'var(--fail)'); });
+      }, 'image/jpeg', CV.quality / 100);
+      return;
+    }
+    if (fmt !== 'jpg') {
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(CV.src.canvas || CV.src, 0, 0, w, h);
+    }
     out.toBlob(function (blob) {
       if (!blob) { convStatus('浏览器不支持这个导出格式', 'var(--fail)'); return; }
       var ext = fmt === 'jpg' ? 'jpg' : fmt;
       var name = (CV.name || 'image').replace(/\.[^.]+$/, '') + '-convert.' + ext;
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-      convStatus('已导出 ' + name, 'var(--ok)');
+      saveBlob(blob, name);
     }, fmt === 'jpg' ? 'image/jpeg' : fmt === 'webp' ? 'image/webp' : 'image/png', CV.quality / 100);
   }
 
@@ -823,12 +887,12 @@
       '</div>' +
       '<div class="wm-controls">' +
       '<h4>输出格式</h4>' +
-      '<div class="wm-row"><label>格式 <select id="wmConvFormat"><option value="png">PNG</option><option value="jpg">JPG</option><option value="webp">WebP</option></select></label><label id="wmConvQualityWrap" hidden>质量 <input id="wmConvQuality" type="range" min="50" max="100" value="90"><b id="wmConvQualityVal">90%</b></label></div>' +
+      '<div class="wm-row"><label>格式 <select id="wmConvFormat"><option value="png">PNG</option><option value="jpg">JPG</option><option value="webp">WebP</option><option value="pdf">PDF（单张图片）</option></select></label><label id="wmConvQualityWrap" hidden>质量 <input id="wmConvQuality" type="range" min="50" max="100" value="90"><b id="wmConvQualityVal">90%</b></label></div>' +
       '<h4>尺寸</h4>' +
       '<div class="wm-row"><label>宽 <input id="wmConvW" type="number" min="1" max="12000" placeholder="宽"></label><label>高 <input id="wmConvH" type="number" min="1" max="12000" placeholder="高"></label></div>' +
       '<label class="wm-check"><input id="wmConvKeep" type="checkbox" checked> 保持比例</label>' +
       '<button class="btn btn-primary" type="button" id="wmConvDownload">转换并下载</button>' +
-      '<p class="wm-note">支持 PNG / JPG / WebP / PSD 输入；PSD 读取合层预览；输出 PNG / JPG / WebP。这里是图片格式转换，不包含 PDF、Word 等文档转换。</p>' +
+      '<p class="wm-note">支持 PNG / JPG / WebP / PSD 输入；PSD 读取合层预览；输出 PNG / JPG / WebP / PDF（单张图片 A4 PDF）。PDF→Word、Word/Excel/PPT/EPUB、HEIC、音视频、RAR 需要服务端，当前静态公网页暂不支持。</p>' +
       '</div></div></div></div>';
   }
 
