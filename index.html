@@ -19,7 +19,8 @@
 <link rel="icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="assets/css/app.css?v=20261048">
-<link rel="preload" href="assets/js/app.js?v=20261055" as="script" fetchpriority="high">
+<link rel="preload" href="assets/js/app.js?v=20261056" as="script" fetchpriority="high">
+<link rel="preload" as="image" href="assets/wallpapers/w1-thumb.jpg" id="wallpaperPreload">
 </head>
 <body>
 
@@ -76,6 +77,8 @@
     var found = custom.filter(function (w) { return w && w.id === selected && w.thumb; })[0];
     var file = /^w[1-9]$/.test(selected) ? selected : 'w1';
     var thumb = found ? found.thumb : 'assets/wallpapers/' + file + '-thumb.jpg';
+    var preload = document.getElementById('wallpaperPreload');
+    if (preload) preload.href = thumb;
     var layer = document.getElementById('wallpaperLayer');
     var img = document.getElementById('wallpaperA');
     if (!layer || !img) return;
@@ -238,7 +241,7 @@
 <script src="assets/js/security.js" defer></script>
 <script src="assets/js/link-safety.js" defer></script>
 <script src="assets/js/qrcode.min.js" defer></script>
-<script src="assets/js/app.js?v=20261055" defer fetchpriority="high"></script>
+<script src="assets/js/app.js?v=20261056" defer fetchpriority="high"></script>
 <script src="assets/js/watermark.js?v=20261055" defer></script>
 </body>
 </html>
