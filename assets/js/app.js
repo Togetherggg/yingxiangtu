@@ -1796,15 +1796,15 @@
 
   async function openPhoneModal() {
     if (state.readOnly) {
-      const url = location.origin + '/';
+      const url = new URL('./', location.href).href;
       const mobile = isTouchDevice();
       const body = '<div class="phone-wrap is-mobile">' +
         (mobile ? '' : '<div class="qr-card"><div id="publicQr" class="qr-box"></div></div>') +
         '<div class="phone-info">' +
           '<div class="phone-url-row"><code id="publicUrl">' + esc(url) + '</code><button class="btn btn-sm" type="button" id="publicCopy">' + ico('copy') + '复制</button></div>' +
-          '<div class="phone-mobile-tip">' + ico('check') + ' 这是公开分享版：把链接发给朋友，任何人打开都能看。' +
+          '<div class="phone-mobile-tip">' + ico('check') + ' 这是永久公网链接：把链接发给朋友，或让对方扫二维码即可打开。' +
             (mobile ? ' 点微信右上角「···」可以发送给朋友。' : '') + '</div>' +
-          '<div class="phone-note">内容由电脑端维护，访客只能浏览，不能修改。链接在电脑开机且程序运行时有效。</div>' +
+          '<div class="phone-note">这是 GitHub Pages 永久公网地址，电脑关机也能打开；内容由管理页更新，访客只能浏览，不能修改。</div>' +
         '</div></div>';
       const modal = openModal({
         title: '分享这个页面',
@@ -2861,7 +2861,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261058 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261059 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
