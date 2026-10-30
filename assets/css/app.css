@@ -1596,4 +1596,5 @@ html.is-lowfx[data-theme="light"] .topbar { background: rgba(250, 249, 246, .95)
 html.is-lowfx .wallpaper-layer.is-on ~ .app .sidebar { background: rgba(8, 10, 15, .92); }
 html.is-lowfx[data-theme="light"] .wallpaper-layer.is-on ~ .app .sidebar { background: rgba(250, 249, 246, .95); }
 html.is-lowfx .wallpaper-layer.is-on ~ .app .db-card { background: rgba(11, 14, 21, .92); }
-html.is-lowfx[data-theme="light"] .wallpaper-layer.is-on ~ .app .db-card { background: rgba(255, 255, 255, .94); }
+html.is-lowfx[data-theme="light"] .wallpaper-layer.is-on ~ .app .db-card { background: rgba(255, 255, 255, .94); }html.is-lowfx body { transition: none; }
+html.is-lowfx .main { scroll-behavior: auto !important; }
