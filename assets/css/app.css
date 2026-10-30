@@ -1568,3 +1568,32 @@ body.wm-open { overflow: hidden; }
   .wm-convert-body .wm-drop { min-height: 220px; }
   .wm-convert-body .wm-drop canvas { max-height: 280px; }
 }
+/* ---------- 低功耗 / 触屏流畅模式 ---------- */
+button, a, input, select, textarea, [role="button"] { touch-action: manipulation; }
+html.is-lowfx * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.is-lowfx .glow { animation: none !important; filter: blur(36px); opacity: .28; }
+html.is-lowfx .topbar,
+html.is-lowfx .sidebar,
+html.is-lowfx .content-head,
+html.is-lowfx .style-tile,
+html.is-lowfx .content.animate .card,
+html.is-lowfx .content.animate .link-row,
+html.is-lowfx .section-head,
+html.is-lowfx .modal,
+html.is-lowfx .modal-overlay,
+html.is-lowfx .menu,
+html.is-lowfx .update-notice,
+html.is-lowfx .content.soft-update,
+html.is-lowfx .toast { animation: none !important; }
+html.is-lowfx .wallpaper-img { transform: none !important; transition: opacity .25s !important; will-change: auto !important; }
+html.is-lowfx .card,
+html.is-lowfx .style-tile,
+html.is-lowfx .link-row,
+html.is-lowfx .btn,
+html.is-lowfx .icon-btn { transition-duration: .12s; }
+html.is-lowfx .topbar { background: rgba(8, 10, 15, .94); }
+html.is-lowfx[data-theme="light"] .topbar { background: rgba(250, 249, 246, .95); }
+html.is-lowfx .wallpaper-layer.is-on ~ .app .sidebar { background: rgba(8, 10, 15, .92); }
+html.is-lowfx[data-theme="light"] .wallpaper-layer.is-on ~ .app .sidebar { background: rgba(250, 249, 246, .95); }
+html.is-lowfx .wallpaper-layer.is-on ~ .app .db-card { background: rgba(11, 14, 21, .92); }
+html.is-lowfx[data-theme="light"] .wallpaper-layer.is-on ~ .app .db-card { background: rgba(255, 255, 255, .94); }
