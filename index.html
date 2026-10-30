@@ -18,8 +18,25 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/app.css?v=20261048">
-<link rel="preload" href="assets/js/app.js?v=20261059" as="script" fetchpriority="high">
+<script>
+(function () {
+  try {
+    var ua = navigator.userAgent || '';
+    var mobile = /Android|iPhone|iPad|iPod|Mobile|MicroMessenger/i.test(ua);
+    var coarse = window.matchMedia && window.matchMedia('(hover: none)').matches;
+    var narrow = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+    var weak = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+      (navigator.deviceMemory && navigator.deviceMemory <= 4);
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var saveData = navigator.connection && navigator.connection.saveData;
+    if (mobile || coarse || narrow || weak || reduced || saveData) {
+      document.documentElement.classList.add('is-lowfx');
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="assets/css/app.css?v=20261049">
+<link rel="preload" href="assets/js/app.js?v=20261060" as="script" fetchpriority="high">
 <link rel="preload" as="image" href="assets/wallpapers/w1-thumb.jpg" id="wallpaperPreload">
 </head>
 <body>
@@ -241,7 +258,7 @@
 <script src="assets/js/security.js" defer></script>
 <script src="assets/js/link-safety.js" defer></script>
 <script src="assets/js/qrcode.min.js" defer></script>
-<script src="assets/js/app.js?v=20261059" defer fetchpriority="high"></script>
+<script src="assets/js/app.js?v=20261060" defer fetchpriority="high"></script>
 <script src="assets/js/watermark.js?v=20261055" defer></script>
 </body>
 </html>
