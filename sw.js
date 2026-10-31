@@ -2,8 +2,8 @@
 const CACHE = 'yxg-v20261062';
 const CORE = [
   './',
-  'assets/css/app.css?v=20261050
-  'assets/css/home.css?v=20261051'',
+  'assets/css/app.css?v=20261050',
+  'assets/css/home.css?v=20261051',
   'assets/js/security.js',
   'assets/js/link-safety.js',
   'assets/js/qrcode.min.js',
