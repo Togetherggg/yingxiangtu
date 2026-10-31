@@ -1,12 +1,13 @@
 /* 公网页加速：静态资源缓存优先，页面/数据后台更新 */
-const CACHE = 'yxg-v20261061';
+const CACHE = 'yxg-v20261062';
 const CORE = [
   './',
-  'assets/css/app.css?v=20261050',
+  'assets/css/app.css?v=20261050
+  'assets/css/home.css?v=20261051'',
   'assets/js/security.js',
   'assets/js/link-safety.js',
   'assets/js/qrcode.min.js',
-  'assets/js/app.js?v=20261061',
+  'assets/js/app.js?v=20261062',
   'assets/js/watermark.js?v=20261055'
 ];
 
