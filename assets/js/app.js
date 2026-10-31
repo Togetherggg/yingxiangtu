@@ -1073,38 +1073,151 @@
   function renderHome() {
     const cats = sortedCategories();
     const links = state.lib.links;
-    let i = 0;
-    const tiles = cats.map((c) => {
-      const own = links.filter((l) => l.categoryId === c.id);
-      const cover = own.filter((l) => l.thumb)[0];
+    const ownOf = (c) => links.filter((l) => l.categoryId === c.id);
+    const metaOf = (c, own) => {
       const sites = [];
       own.forEach((l) => { const s = siteOf(l); if (sites.indexOf(s) < 0) sites.push(s); });
-      const meta = c.system && !own.length ? '删除风格后，链接会集中到这里'
-        : !own.length ? '暂无链接，点击添加'
-        : sites.length <= 2 ? sites.join(' · ')
-        : sites[0] + ' 等 ' + sites.length + ' 个来源';
-      return '<button class="style-tile' + (c.system ? ' is-uncat' : '') + '" type="button" data-scope="' + esc(c.id) + '" style="--c:' + esc(c.color) + ';--d:' + Math.min(i++, 12) * 35 + 'ms" aria-label="查看 ' + esc(c.name) + '（' + own.length + ' 条）">' +
-        '<span class="tile-media">' +
-          '<span class="tile-fallback">' + esc(c.name.slice(0, 2)) + '</span>' +
-          (cover ? '<img src="' + esc(cover.thumb) + '" alt="" loading="lazy" decoding="async">' : '') +
-          '<span class="tile-overlay"></span>' +
-          '<span class="tile-count">' + own.length + ' 条</span>' +
-          '<span class="tile-caption"><span class="tile-name">' + esc(c.name) + '</span>' +
-            '<span class="tile-meta">' + esc(meta) + '</span></span>' +
-          '<span class="tile-arrow">' + ico('external') + '</span>' +
-        '</span>' +
+      if (c.system && !own.length) return '删除风格后，链接会集中到这里';
+      if (!own.length) return '暂无链接';
+      return sites.length <= 2 ? sites.join(' · ') : sites[0] + ' 等 ' + sites.length + ' 个来源';
+    };
+    const ranked = cats.slice().sort((a, b) => ownOf(b).length - ownOf(a).length);
+    const featured = ranked[0] || cats[0] || null;
+    const featuredOwn = featured ? ownOf(featured) : [];
+    const featuredMeta = featured ? metaOf(featured, featuredOwn) : '';
+    const featuredCover = featuredOwn.filter((l) => l.thumb)[0];
+    const posterCover = featuredCover ? featuredCover.thumb : 'assets/wallpapers/w1.webp';
+    const uniqueSites = [];
+    links.forEach((l) => { const s = siteOf(l); if (s && uniqueSites.indexOf(s) < 0) uniqueSites.push(s); });
+    const indexCover = (c) => {
+      const own = ownOf(c);
+      const cover = own.filter((l) => l.thumb)[0];
+      return cover ? cover.thumb : '';
+    };
+    let rowNo = 0;
+    const indexRow = (c) => {
+      const own = ownOf(c);
+      const cover = indexCover(c);
+      const no = String(++rowNo).padStart(2, '0');
+      const meta = metaOf(c, own);
+      return '<button class="home-index-row" type="button" data-scope="' + esc(c.id) + '"' +
+        ' data-cover="' + esc(cover) + '" data-name="' + esc(c.name) + '"' +
+        ' data-meta="' + esc(meta) + '" data-count="' + own.length + '" data-color="' + esc(c.color) + '"' +
+        ' aria-label="查看 ' + esc(c.name) + '（' + own.length + ' 条）">' +
+        '<span class="home-row-num">' + no + '</span>' +
+        '<span class="home-row-thumb">' + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<i style="--c:' + esc(c.color) + '"></i>') + '</span>' +
+        '<span class="home-row-name">' + esc(c.name) + '</span>' +
+        '<span class="home-row-count">' + String(own.length).padStart(2, '0') + '</span>' +
+        '<span class="home-row-arrow" aria-hidden="true">↗</span>' +
       '</button>';
-    }).join('');
-    const addTile = state.readOnly ? '' :
-      '<button class="style-tile is-add" type="button" id="tileAddCat" style="--d:' + Math.min(i, 12) * 35 + 'ms" aria-label="新建风格">' +
-      '<span class="add-inner"><span class="plus-ring">' + ico('plus') + '</span><span>新建风格分类</span></span></button>';
+    };
+    const half = Math.ceil(cats.length / 2);
+    const rowsA = cats.slice(0, half).map(indexRow).join('');
+    const rowsB = cats.slice(half).map(indexRow).join('');
+    const tickerItems = cats.map((c, i) => '<span><i>' + String(i + 1).padStart(2, '0') + '</i>' + esc(c.name) + '<b>' + String(ownOf(c).length).padStart(2, '0') + '</b></span>').join('');
+    const first = cats[0] || null;
+    const firstOwn = first ? ownOf(first) : [];
+    const firstCover = first ? indexCover(first) : '';
+    const firstMeta = first ? metaOf(first, firstOwn) : '';
+    const featuredNo = String(featuredOwn.length).padStart(2, '0');
+    const home = '<div class="home-v2">' +
+      '<section class="home-hero">' +
+        '<div class="home-hero-copy">' +
+          '<div class="home-kicker"><span>SPATIAL ARCHIVE</span><span>ISSUE 01 / 2026</span></div>' +
+          '<h1 class="home-title"><span>空间</span><span class="is-outline">风格档案</span></h1>' +
+          '<div class="home-hero-bottom">' +
+            '<p class="home-intro">给室内设计师的灵感索引。按风格归档的全景效果图，从复古原木到极简现代，随时翻阅。</p>' +
+            '<div class="home-stats">' +
+              '<div><b>' + cats.length + '</b><span>STYLES</span></div>' +
+              '<div><b>' + links.length + '</b><span>REFERENCES</span></div>' +
+              '<div><b>' + uniqueSites.length + '</b><span>SOURCES</span></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="home-actions">' +
+            '<button class="home-btn home-btn-fill" type="button" data-scope="all">全部链接 <span>' + links.length + '</span></button>' +
+            '<button class="home-btn home-btn-line" type="button" id="homeIndexBtn">浏览风格索引 <span>↓</span></button>' +
+          '</div>' +
+        '</div>' +
+        (featured ? '<button class="home-poster" type="button" data-scope="' + esc(featured.id) + '" aria-label="查看 ' + esc(featured.name) + '">' +
+          '<img src="' + esc(posterCover) + '" alt="' + esc(featured.name) + '" decoding="async">' +
+          '<span class="home-poster-shade"></span>' +
+          '<span class="home-poster-top"><span>MOST COLLECTED</span><span>NO. 01</span></span>' +
+          '<span class="home-poster-caption"><span>' + esc(featured.name) + '</span><small>' + esc(featuredMeta) + ' · ' + featuredOwn.length + ' 条</small></span>' +
+          '<span class="home-poster-num">' + featuredNo + '</span>' +
+        '</button>' : '') +
+        '<span class="home-vertical" aria-hidden="true">SPATIAL ARCHIVE — VOL. 01</span>' +
+      '</section>' +
+      '<div class="home-ticker" aria-hidden="true"><div class="home-ticker-track">' + tickerItems + tickerItems + '</div></div>' +
+      '<section class="home-index-section" id="homeIndex">' +
+        '<div class="home-section-head"><div><span class="home-kicker">INDEX / 01—' + String(cats.length).padStart(2, '0') + '</span><h2>风格索引</h2></div>' +
+          '<div class="home-head-meta"><span>按收录顺序</span>' + (state.readOnly ? '' : '<button class="home-add" type="button" id="homeAddCat">+ 新建风格</button>') + '</div>' +
+        '</div>' +
+        '<div class="home-index">' +
+          '<div class="home-index-cols"><div class="home-index-col">' + rowsA + '</div><div class="home-index-col">' + rowsB + '</div></div>' +
+          '<aside class="home-preview" aria-hidden="true">' +
+            '<div class="home-preview-frame">' + (firstCover ? '<img id="homePreviewImg" src="' + esc(firstCover) + '" alt="" decoding="async">' : '<img id="homePreviewImg" alt="" hidden>') + '</div>' +
+            '<div class="home-preview-info"><span class="home-preview-count" id="homePreviewCount">' + String(firstOwn.length).padStart(2, '0') + ' REFERENCES</span>' +
+              '<h3 id="homePreviewName">' + esc(first ? first.name : '') + '</h3>' +
+              '<p id="homePreviewMeta">' + esc(firstMeta) + '</p></div>' +
+          '</aside>' +
+        '</div>' +
+      '</section>' +
+      '<section class="home-desk-section">' +
+        '<div class="home-section-head"><div><span class="home-kicker">STUDIO DESK / 02</span><h2>设计师工作台</h2></div><div class="home-head-meta"><span>日程 · 天气 · 日历 · 参考</span></div></div>' +
+        renderDesignerBoard() +
+      '</section>' +
+      '<footer class="home-footer"><span>效果图网址 / PUBLIC ARCHIVE</span><span>' + links.length + ' REFERENCES · ' + cats.length + ' STYLES · 2026</span></footer>' +
+    '</div>';
     const content = $('#content');
-    content.innerHTML = renderDesignerBoard() + '<div class="style-grid">' + tiles + addTile + '</div>';
+    content.innerHTML = home;
     bindImages(content);
     bindDesignerBoard();
-    const addBtn = $('#tileAddCat');
-    if (addBtn) addBtn.addEventListener('click', () => openCategoryForm(null));
+    bindHomePreview();
+    bindHomeActions();
     maybeShowUpdateNotice();
+  }
+
+  function bindHomePreview() {
+    const rows = $$('#content .home-index-row');
+    if (!rows.length) return;
+    const img = $('#homePreviewImg');
+    const name = $('#homePreviewName');
+    const count = $('#homePreviewCount');
+    const meta = $('#homePreviewMeta');
+    const preview = $('#content .home-preview');
+    function activate(row) {
+      rows.forEach((r) => r.classList.toggle('is-active', r === row));
+      const cover = row.dataset.cover;
+      if (img) {
+        if (cover) {
+          img.hidden = false;
+          img.src = cover;
+        } else {
+          img.hidden = true;
+          img.removeAttribute('src');
+        }
+      }
+      if (name) name.textContent = row.dataset.name || '';
+      if (count) count.textContent = String(row.dataset.count || '0').padStart(2, '0') + ' REFERENCES';
+      if (meta) meta.textContent = row.dataset.meta || '';
+      if (preview) preview.style.setProperty('--c', row.dataset.color || '');
+    }
+    rows.forEach((row) => {
+      row.addEventListener('mouseenter', () => activate(row));
+      row.addEventListener('focus', () => activate(row));
+    });
+    activate(rows[0]);
+  }
+
+  function bindHomeActions() {
+    const indexBtn = $('#homeIndexBtn');
+    if (indexBtn) indexBtn.addEventListener('click', () => {
+      const sec = $('#homeIndex');
+      if (!sec) return;
+      sec.scrollIntoView({ behavior: document.documentElement.classList.contains('is-lowfx') ? 'auto' : 'smooth', block: 'start' });
+    });
+    const addBtn = $('#homeAddCat');
+    if (addBtn) addBtn.addEventListener('click', () => openCategoryForm(null));
   }
 
   function highlight(text) {
@@ -1171,7 +1284,9 @@
 
   function renderContent(animate) {
     const content = $('#content');
-    if (!(state.scope === 'home' && !state.query.trim())) hideUpdateNotice(false);
+    const homeMode = state.scope === 'home' && !state.query.trim();
+    document.body.classList.toggle('is-home', homeMode);
+    if (!homeMode) hideUpdateNotice(false);
     if (!state.ready) {
       content.innerHTML = '<div class="skeleton-wrap">' + new Array(6).join('<div class="skeleton"></div>') + '</div>';
       return;
@@ -2861,7 +2976,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261061 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261062 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -3232,7 +3347,7 @@
     document.addEventListener('click', (e) => {
       const addcat = e.target.closest('[data-addcat]');
       if (addcat) { e.stopPropagation(); openForm('add', null, addcat.dataset.addcat); return; }
-      const tile = e.target.closest('#content .style-tile[data-scope]');
+      const tile = e.target.closest('#content [data-scope]');
       if (tile) { e.preventDefault(); setScope(tile.dataset.scope); return; }
       const btn = e.target.closest('#content [data-act]');
       if (btn) {
