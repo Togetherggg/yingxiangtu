@@ -211,3 +211,6 @@ html.is-lowfx .home-poster img,
 html.is-lowfx .home-index-row,
 html.is-lowfx .home-preview-frame img { transition: none !important; }
 html.is-lowfx .home-poster:hover img { transform: none !important; }
+@media (max-width: 980px) {
+  body.is-home .sidebar { display: none; }
+}
