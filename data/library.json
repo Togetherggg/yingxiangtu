@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": "2026-11-17T08:30:31.000Z",
+ "updatedAt": "2026-11-17T08:31:40.000Z",
  "categories": [
   {
    "id": "c04",
@@ -84,6 +84,12 @@
    "name": "极简中古",
    "order": 11,
    "color": "#C9B8A0"
+  },
+  {
+   "id": "c13",
+   "name": "托斯卡纳",
+   "order": 12,
+   "color": "#C77B4E"
   }
  ],
  "links": [
