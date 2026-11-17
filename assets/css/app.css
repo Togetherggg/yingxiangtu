@@ -135,6 +135,15 @@ img { display: block; }
   pointer-events: none;
 }
 .brand-mark span { font-size: 19px; font-weight: 800; color: #fff; letter-spacing: 0; transform: translateY(-.5px); }
+.brand-mark.brand-mark-image {
+  background: #f3efe6; padding: 4px;
+  box-shadow: 0 8px 22px -14px rgba(0, 0, 0, .75), inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.brand-mark.brand-mark-image::after { display: none; }
+.brand-mark.brand-mark-image img { width: 100%; height: 100%; object-fit: contain; display: block; }
+[data-theme="light"] .brand-mark.brand-mark-image {
+  box-shadow: 0 8px 18px -14px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(0, 0, 0, .12);
+}
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand-text b { font-size: 15.5px; font-weight: 700; letter-spacing: .02em; }
 .brand-text em { font-style: normal; font-size: 11px; color: var(--text-3); letter-spacing: .16em; margin-top: 3px; }
