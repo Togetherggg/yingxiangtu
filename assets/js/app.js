@@ -1,5 +1,5 @@
 /* ==========================================================================
-   效果图网址 · 风格灵感库  —  主脚本
+   处禾效果图 · 风格灵感库  —  主脚本
    纯前端 · 无第三方依赖 · 支持 file:// 与本地服务两种存储模式
    ========================================================================== */
 (function () {
@@ -1166,7 +1166,7 @@
         '<div class="home-section-head"><div><span class="home-kicker">STUDIO DESK / 02</span><h2>设计师工作台</h2></div><div class="home-head-meta"><span>日程 · 天气 · 日历 · 参考</span></div></div>' +
         renderDesignerBoard() +
       '</section>' +
-      '<footer class="home-footer"><span>效果图网址 / PUBLIC ARCHIVE</span><span>' + links.length + ' REFERENCES · ' + cats.length + ' STYLES · 2026</span></footer>' +
+      '<footer class="home-footer"><span>处禾效果图 / PUBLIC ARCHIVE</span><span>' + links.length + ' REFERENCES · ' + cats.length + ' STYLES · 2026</span></footer>' +
     '</div>';
     const content = $('#content');
     content.innerHTML = home;
@@ -2307,11 +2307,11 @@
 
   /* ---------------------------------------------------------------- 备份 */
   function exportBackup() {
-    const payload = { app: '效果图网址', schema: 1, exportedAt: new Date().toISOString(), library: state.lib };
+    const payload = { app: '处禾效果图', schema: 1, exportedAt: new Date().toISOString(), library: state.lib };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = '效果图网址-备份-' + stamp() + '.json';
+    a.download = '处禾效果图-备份-' + stamp() + '.json';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -2424,7 +2424,7 @@
         '<div class="kbd-row"><span>编辑选中卡片</span><kbd>E</kbd></div>' +
       '</div>' +
       '<div class="about-box"><span class="brand-mark"><span>效</span></span><div>' +
-        '<b>效果图网址 · 风格灵感库</b>' +
+        '<b>处禾效果图 · 风格灵感库</b>' +
         '<p>共 ' + state.lib.links.length + ' 条链接 / ' + state.lib.categories.length + ' 种风格。' +
         (state.readOnly
           ? '当前是公开分享版：任何人打开这个链接都能看，但只能浏览、不能修改。内容由电脑端维护。'
@@ -2751,7 +2751,7 @@
 
   const TUTORIAL_URLS = {
     public: 'https://togetherggg.github.io/yingxiangtu/',
-    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=18',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=19',
     local: 'http://127.0.0.1:51888/'
   };
 
@@ -2960,7 +2960,7 @@
         '<h4>发布很慢？</h4>' +
         '<p>数据 JSON 是快速通道；慢通常发生在图片文件需要 GitHub Pages 部署时。保存状态显示「已保存」就说明数据已提交，图片稍等即可。</p>';
     }
-    return '<h4>效果图网址 · 风格灵感库</h4>' +
+    return '<h4>处禾效果图 · 风格灵感库</h4>' +
       '<p>一个按装修风格整理全景效果图链接的私人资料库，同时提供公网只读页、管理页和本地版。</p>' +
       '<div class="settings-split">' +
       '<div class="settings-mini"><b>公网页</b><span>任何人可看，手机/微信可开；只读。</span></div>' +
@@ -2976,7 +2976,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261065 · 管理页 v18<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261066 · 管理页 v19<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -3192,7 +3192,7 @@
     const loading = $('#adminModeLoading');
     if (loading) loading.hidden = false;
     frame.onload = () => { if (loading) loading.hidden = true; };
-    frame.src = 'admin.html?v=18&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
+    frame.src = 'admin.html?v=19&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
     mode.hidden = false;
     document.body.classList.add('admin-mode-open');
     setTimeout(() => { const btn = $('#adminModeClose'); if (btn) btn.focus(); }, 60);
