@@ -1214,7 +1214,7 @@
     if (indexBtn) indexBtn.addEventListener('click', () => {
       const sec = $('#homeIndex');
       if (!sec) return;
-      sec.scrollIntoView({ behavior: document.documentElement.classList.contains('is-lowfx') ? 'auto' : 'smooth', block: 'start' });
+      sec.scrollIntoView({ behavior: 'auto', block: 'start' });
     });
     const addBtn = $('#homeAddCat');
     if (addBtn) addBtn.addEventListener('click', () => openCategoryForm(null));
@@ -2448,7 +2448,7 @@
   /* ---------------------------------------------------------------- 交互 */
   function scrollMainTop() {
     const main = $('#main');
-    if (main) main.scrollTo({ top: 0, behavior: document.documentElement.classList.contains('is-lowfx') ? 'auto' : 'smooth' });
+    if (main) main.scrollTo({ top: 0, behavior: 'auto' });
   }
 
   function setScope(id) {
@@ -2465,7 +2465,7 @@
     closeMenu();
     renderSidebar();
     renderHead();
-    renderContent(true);
+    renderContent(false);
     scrollMainTop();
   }
 
@@ -2485,7 +2485,7 @@
     $('#searchClear').hidden = true;
     $('#searchWrap').classList.remove('has-value');
     renderHead();
-    renderContent(true);
+    renderContent(false);
     input.focus();
   }
 
@@ -2976,7 +2976,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261063 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261064 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -3334,14 +3334,14 @@
       state.view = btn.dataset.view;
       try { localStorage.setItem(LS.view, state.view); } catch (e) {}
       $$('.segmented button[data-view]').forEach((b) => b.classList.toggle('is-active', b === btn));
-      renderContent(true);
+      renderContent(false);
     }));
 
     $('#sortSel').addEventListener('change', () => {
       state.sort = $('#sortSel').value;
       try { localStorage.setItem(LS.sort, state.sort); } catch (e) {}
       renderHead();
-      renderContent(true);
+      renderContent(false);
     });
 
     document.addEventListener('click', (e) => {
