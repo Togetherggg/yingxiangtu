@@ -2751,7 +2751,7 @@
 
   const TUTORIAL_URLS = {
     public: 'https://togetherggg.github.io/yingxiangtu/',
-    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=17',
+    admin: 'https://togetherggg.github.io/yingxiangtu/admin.html?v=18',
     local: 'http://127.0.0.1:51888/'
   };
 
@@ -2976,7 +2976,7 @@
       '<p>公网页采用静态托管：浏览快、无需电脑常开；数据更新走 GitHub JSON 快速通道，图片由 GitHub Pages 部署。管理页不向公网页暴露 Token。</p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261064 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261065 · 管理页 v18<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openSettingsModal() {
@@ -3192,7 +3192,7 @@
     const loading = $('#adminModeLoading');
     if (loading) loading.hidden = false;
     frame.onload = () => { if (loading) loading.hidden = true; };
-    frame.src = 'admin.html?v=17&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
+    frame.src = 'admin.html?v=18&embed=1' + (focus ? '&focus=' + encodeURIComponent(focus) : '') + '&t=' + Date.now();
     mode.hidden = false;
     document.body.classList.add('admin-mode-open');
     setTimeout(() => { const btn = $('#adminModeClose'); if (btn) btn.focus(); }, 60);
