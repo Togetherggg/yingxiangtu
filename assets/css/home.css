@@ -214,3 +214,34 @@ html.is-lowfx .home-poster:hover img { transform: none !important; }
 @media (max-width: 980px) {
   body.is-home .sidebar { display: none; }
 }
+/* ---------- 全局流畅化：移除最耗 GPU 的模糊、滤镜和布局动画 ---------- */
+.glow { filter: none !important; animation: none !important; }
+* { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.topbar { background: rgba(8, 10, 15, .95) !important; animation: none !important; }
+[data-theme="light"] .topbar { background: rgba(250, 249, 246, .97) !important; }
+.sidebar { background: rgba(8, 10, 15, .94) !important; animation: none !important; }
+[data-theme="light"] .sidebar { background: rgba(250, 249, 246, .97) !important; }
+.wallpaper-layer.is-on ~ .app .sidebar { background: rgba(8, 10, 15, .94) !important; }
+[data-theme="light"] .wallpaper-layer.is-on ~ .app .sidebar { background: rgba(250, 249, 246, .97) !important; }
+.wallpaper-layer.is-on ~ .app .db-card { background: rgba(11, 14, 21, .95) !important; }
+[data-theme="light"] .wallpaper-layer.is-on ~ .app .db-card { background: rgba(255, 255, 255, .97) !important; }
+.modal-overlay { background: rgba(3, 5, 9, .84) !important; animation-duration: .16s !important; }
+.modal { animation-duration: .2s !important; }
+.menu { animation-duration: .12s !important; }
+.toast { animation-duration: .16s !important; }
+.content-head { animation: none !important; }
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after { transition: none !important; }
+body { transition: none !important; }
+.content.animate .card,
+.content.animate .link-row,
+.content.animate .section-head,
+.content.soft-update { animation: none !important; }
+.home-index-row { transition: background .14s, color .14s !important; padding-left: 8px !important; padding-right: 8px !important; }
+.home-index-row:hover,
+.home-index-row.is-active { padding-left: 8px !important; padding-right: 8px !important; }
+.home-poster img { transition: transform .55s var(--ease-silk) !important; filter: saturate(.8) contrast(1.04) !important; }
+.home-poster:hover img { transform: scale(1.025); filter: saturate(.8) contrast(1.04) !important; }
+.home-ticker { mask-image: none !important; -webkit-mask-image: none !important; }
+.home-ticker-track { animation-duration: 52s; will-change: transform; transform: translate3d(0, 0, 0); }
