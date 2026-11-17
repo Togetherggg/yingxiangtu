@@ -8,7 +8,7 @@
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('yxg.admin.theme')||'dark';}catch(e){}</script>
 <meta name="robots" content="noindex,nofollow">
 <title>效果图网址 · 管理后台</title>
-<link rel="icon" href="assets/favicon.ico">
+<link rel="icon" href="assets/favicon.ico?v=20261065">
 <link rel="stylesheet" href="assets/css/app.css">
 <style>
   body { overflow: auto; display: block; background: var(--bg); }
@@ -19,10 +19,11 @@
   }
   .adm-brand { display: flex; align-items: center; gap: 11px; }
   .adm-mark {
-    width: 38px; height: 38px; border-radius: 12px; background: var(--grad);
-    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 18px;
-    box-shadow: 0 10px 22px -12px rgba(109, 76, 255, .9);
+    width: 38px; height: 38px; border-radius: 12px; background: #f3efe6;
+    display: grid; place-items: center; padding: 4px;
+    box-shadow: 0 8px 22px -14px rgba(0, 0, 0, .75), inset 0 0 0 1px rgba(0, 0, 0, .06);
   }
+  .adm-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .adm-brand b { font-size: 15px; display: block; line-height: 1.2; }
   .adm-brand em { font-style: normal; font-size: 11px; color: var(--text-3); letter-spacing: .05em; }
   .adm-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -42,7 +43,7 @@
   .adm-row { display: flex; gap: 8px; }
   .adm-row > * { min-width: 0; }
   .adm-login { max-width: 460px; margin: 80px auto; text-align: center; }
-  .adm-login .adm-mark { margin: 0 auto 16px; width: 56px; height: 56px; border-radius: 18px; font-size: 26px; }
+  .adm-login .adm-mark { margin: 0 auto 16px; width: 56px; height: 56px; border-radius: 18px; padding: 6px; font-size: 0; }
   .adm-login h1 { font-size: 20px; margin-bottom: 8px; }
   .adm-login p { font-size: 12.5px; color: var(--text-3); line-height: 1.8; margin-bottom: 18px; }
   .adm-login .input { text-align: left; }
@@ -159,7 +160,7 @@
   [data-theme="light"] .adm-savebar { background: rgba(255, 255, 255, .94); }
   [data-theme="light"] .adm-mask { background: rgba(24, 30, 44, .32); }
   [data-theme="light"] .adm-dialog { box-shadow: 0 30px 80px -22px rgba(24, 34, 56, .38); }
-  [data-theme="light"] .adm-mark { box-shadow: 0 10px 22px -12px rgba(109, 76, 255, .45); }
+  [data-theme="light"] .adm-mark { box-shadow: 0 8px 18px -14px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(0, 0, 0, .12); }
   [data-theme="light"] .adm-tutorial-close { background: var(--panel); }
   [data-theme="light"] .adm-ev-type { background: var(--panel-2); }
   [data-theme="light"] .settings-tip { background: rgba(251, 191, 36, .08); }
@@ -203,7 +204,7 @@
 
 <header class="adm-top">
   <div class="adm-brand">
-    <div class="adm-mark">效</div>
+    <div class="adm-mark"><img src="assets/logo-ch.png?v=20261065" alt=""></div>
     <div><b>效果图网址 · 管理</b><em>添加 / 删除 / 新建风格</em></div>
   </div>
   <div class="adm-actions">
@@ -217,7 +218,7 @@
 
 <div class="adm-wrap">
   <section id="loginPanel" class="adm-card adm-login" hidden>
-    <div class="adm-mark">效</div>
+    <div class="adm-mark"><img src="assets/logo-ch.png?v=20261065" alt=""></div>
     <h1>效果图管理后台</h1>
     <p>输入 GitHub Token 后，就能在这里添加、删除效果图，新建风格。<br>保存后会更新公网只读页面；Token 只保存在本机浏览器里。</p>
     <div class="adm-field">
@@ -1126,7 +1127,7 @@
   }
 
   function tutorialContent(key) {
-    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=17';
+    const A = 'https://togetherggg.github.io/yingxiangtu/admin.html?v=18';
     const P = 'https://togetherggg.github.io/yingxiangtu/';
     if (key === 'guide') {
       return '<h4>公网页怎么用</h4>' +
@@ -1236,7 +1237,7 @@
       '<p>本地版：<a href="http://127.0.0.1:51888/" target="_blank" rel="noopener">http://127.0.0.1:51888/</a></p>' +
       '<h4>关于我的表情包</h4>' +
       '<div class="settings-sticker-wrap"><img class="settings-sticker" src="assets/sticker-ai-600.png" alt="AI 打工仔表情包"><p>AI 打工仔 · 第 8 版了<br><span>收到，马上改！</span></p></div>' +
-      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261050 · 管理页 v17<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
+      '<div class="settings-version">教程版本：2026-10-24 · 公网页 v20261065 · 管理页 v18<br>如果页面还是旧版，按 Ctrl + F5 强制刷新。</div>';
   }
 
   function openTutorial() {
