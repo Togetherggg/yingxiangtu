@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": "2026-11-17T08:31:40.000Z",
+ "updatedAt": "2026-11-17T08:32:48.000Z",
  "categories": [
   {
    "id": "c04",
@@ -13,21 +13,21 @@
    "id": "c08",
    "name": "奶油",
    "color": "#F2D8A8",
-   "order": 1,
+   "order": 10,
    "system": false
   },
   {
    "id": "c10",
    "name": "现代",
    "color": "#9AA7B8",
-   "order": 2,
+   "order": 6,
    "system": false
   },
   {
    "id": "c12",
    "name": "极简",
    "color": "#D7E1EA",
-   "order": 3,
+   "order": 4,
    "system": false
   },
   {
@@ -40,43 +40,43 @@
   {
    "id": "c14",
    "name": "老钱",
-   "order": 4,
+   "order": 1,
    "color": "#556B57"
   },
   {
    "id": "c15",
    "name": "中古",
-   "order": 5,
+   "order": 2,
    "color": "#C08A5A"
   },
   {
    "id": "c16",
    "name": "意式极简",
-   "order": 6,
+   "order": 3,
    "color": "#8C7CFF"
   },
   {
    "id": "c17",
    "name": "奶油中古",
-   "order": 7,
+   "order": 5,
    "color": "#E0B98D"
   },
   {
    "id": "c18",
    "name": "现代极简",
-   "order": 8,
+   "order": 7,
    "color": "#8C99A8"
   },
   {
    "id": "c19",
    "name": "宋氏",
-   "order": 9,
+   "order": 8,
    "color": "#A67C52"
   },
   {
    "id": "c20",
    "name": "工装",
-   "order": 10,
+   "order": 9,
    "color": "#6B7280"
   },
   {
