@@ -1,5 +1,5 @@
 /* 公网页加速：静态资源缓存优先，页面/数据后台更新 */
-const CACHE = 'yxg-v20261065';
+const CACHE = 'yxg-v20261066';
 const CORE = [
   './',
   'assets/css/app.css?v=20261051',
@@ -7,8 +7,8 @@ const CORE = [
   'assets/js/security.js',
   'assets/js/link-safety.js',
   'assets/js/qrcode.min.js',
-  'assets/js/app.js?v=20261065',
-  'assets/js/watermark.js?v=20261055'
+  'assets/js/app.js?v=20261066',
+  'assets/js/watermark.js?v=20261066'
 ];
 
 self.addEventListener('install', (event) => {
