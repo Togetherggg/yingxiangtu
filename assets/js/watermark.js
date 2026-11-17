@@ -9,7 +9,7 @@
     logo: null,
     logoName: '',
     type: 'text',
-    text: '效果图网址',
+    text: '处禾效果图',
     size: 5,
     color: '#ffffff',
     opacity: 55,
@@ -858,7 +858,7 @@
       '<div class="wm-controls">' +
       '<div class="wm-tabs" id="wmTabs"><button type="button" data-wmtype="text" class="is-active">文字水印</button><button type="button" data-wmtype="image">图片水印</button></div>' +
       '<div id="wmTextPanel">' +
-      '<label class="wm-field">水印文字<input id="wmText" type="text" maxlength="40" value="效果图网址" autocomplete="off"></label>' +
+      '<label class="wm-field">水印文字<input id="wmText" type="text" maxlength="40" value="处禾效果图" autocomplete="off"></label>' +
       '<div class="wm-row"><label>字号 <input id="wmSize" type="range" min="1" max="20" value="5"><b id="wmSizeVal">5%</b></label><label>颜色 <input id="wmColor" type="color" value="#ffffff"></label></div>' +
       '<div class="wm-row"><label class="wm-check"><input id="wmBold" type="checkbox" checked> 加粗</label><label class="wm-check"><input id="wmShadow" type="checkbox" checked> 阴影</label></div>' +
       '</div>' +
